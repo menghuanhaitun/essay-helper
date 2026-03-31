@@ -186,27 +186,34 @@ export async function onRequestPost({ request, env }) {
     // 删除旧数据
     await env.DB.prepare('DELETE FROM vocab_library').all();
 
-    // 导入词汇
+    // 使用批量插入（VALUES 后面跟多个元组）
+    const values = [];
+
+    // 收集词汇数据
     let wordCount = 0;
     for (const [category, words] of Object.entries(vocabData.words)) {
       for (const content of words) {
-        await env.DB.prepare(
-          'INSERT INTO vocab_library (type, category, content) VALUES (?, ?, ?)'
-        ).bind('word', category, content).run();
+        values.push(['word', category, content]);
         wordCount++;
       }
     }
 
-    // 导入句子
+    // 收集句子数据
     let sentenceCount = 0;
     for (const [category, sentences] of Object.entries(vocabData.sentences)) {
       for (const content of sentences) {
-        await env.DB.prepare(
-          'INSERT INTO vocab_library (type, category, content) VALUES (?, ?, ?)'
-        ).bind('sentence', category, content).run();
+        values.push(['sentence', category, content]);
         sentenceCount++;
       }
     }
+
+    // 批量插入
+    const placeholders = values.map(() => '(?, ?, ?)').join(', ');
+    const flatValues = values.flat();
+
+    await env.DB.prepare(
+      `INSERT INTO vocab_library (type, category, content) VALUES ${placeholders}`
+    ).bind(...flatValues).run();
 
     return new Response(JSON.stringify({
       success: true,

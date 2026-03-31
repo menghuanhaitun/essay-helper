@@ -290,6 +290,7 @@ nav { display:flex; gap:8px; padding:14px 16px; overflow-x:auto; background:whit
   <button class="nav-btn" id="loginBtn" onclick="showLoginModal()">🔐 登录</button>
   <button class="nav-btn" id="userActions" style="display:none;">
     <span id="welcomeUser">用户</span>
+    <button class="nav-btn" onclick="handleLogout()" style="background:var(--secondary);border-color:var(--secondary);color:white;margin-left:10px;padding:6px 14px;font-size:.8rem;">退出</button>
   </button>
 </nav>
 
@@ -431,21 +432,86 @@ nav { display:flex; gap:8px; padding:14px 16px; overflow-x:auto; background:whit
 </main>
 <div id="toast"></div>
 
-<!-- 加载独立词库文件 -->
-<script src="vocab-data.js"></script>
+<!-- 加载云API -->
 <script src="cloud-api.js"></script>
 
 <script>
 // ══════════════════════════════════════════
-//  数据层（词库已提取到 vocab-data.js）
+//  数据层（词库从数据库加载）
 // ══════════════════════════════════════════
+
+// 从数据库加载词库数据
+let cachedVocabData = null;
+
+async function loadVocabFromDB() {
+  if (cachedVocabData) {
+    return cachedVocabData;
+  }
+
+  try {
+    const result = await callApi('/vocab-library', 'GET');
+    if (result.success) {
+      cachedVocabData = {
+        写景自然: { words: [], sentences: [] },
+        写人外貌: { words: [], sentences: [] },
+        写事记叙: { words: [], sentences: [] },
+        写景家乡: { words: [], sentences: [] },
+        状物动植物: { words: [], sentences: [] },
+        表情心理: { words: [], sentences: [] }
+      };
+
+      result.data.forEach(item => {
+        if (cachedVocabData[item.category]) {
+          if (item.type === 'word') {
+            cachedVocabData[item.category].words.push(item.content);
+          } else if (item.type === 'sentence') {
+            cachedVocabData[item.category].sentences.push({
+              type: item.category,
+              s: item.content
+            });
+          }
+        }
+      });
+
+      return cachedVocabData;
+    } else {
+      console.error('加载词库失败:', result.error);
+      showToast('❌ 加载词库失败');
+      return null;
+    }
+  } catch (error) {
+    console.error('加载词库失败:', error);
+    showToast('❌ 加载词库失败');
+    return null;
+  }
+}
+
+// 获取词库数据（兼容旧的 VOCAB_DATA）
+const VOCAB_DATA = {
+  get: async function(category) {
+    const data = await loadVocabFromDB();
+    if (data && category) {
+      return data[category];
+    }
+    return data;
+  },
+  keys: async function() {
+    const data = await loadVocabFromDB();
+    return data ? Object.keys(data) : [];
+  }
+};
+
+// 同步获取（用于初始化时）
+function getVocabDataSync() {
+  return cachedVocabData || {};
+}
 
 // ══════════════════════════════════════════
 //  登录和云同步功能
 // ══════════════════════════════════════════
 
 // 页面加载时检查登录状态
-window.onload = function() {
+window.onload = async function() {
   // 检查是否已经登录
   if (isLoggedIn()) {
     document.getElementById('loginModal').style.display = 'none';
@@ -464,12 +530,12 @@ window.onload = function() {
   // 原有的初始化
   loadState();
   updateScoreBar();
-  initVocab();
+  await initVocab();  // 异步加载词库
   initGuide();
   initUpgrade();
   initEssay();
   initPractice();
-  initCategorySelects();
+  await initCategorySelects();  // 异步加载分类
   renderMyVocab();
 };
 
@@ -593,6 +659,31 @@ function updateAppTitle() {
     appTitle.textContent = '✍️ 小朋友的作文助手';
     pageTitle.textContent = '小朋友的作文助手 ✍️';
   }
+}
+
+// 登出
+function handleLogout() {
+  if (!confirm('确定要退出登录吗？')) {
+    return;
+  }
+
+  // 清除登录信息
+  localStorage.removeItem('token');
+  localStorage.removeItem('username');
+  localStorage.removeItem('userId');
+
+  // 隐藏同步按钮
+  document.getElementById('syncBtn').style.display = 'none';
+
+  // 更新 UI
+  updateLoginButton();
+  updateAppTitle();
+
+  // 显示提示
+  showToast('已退出登录');
+
+  // 清空缓存的词库数据（可选，如果想重新加载）
+  cachedVocabData = null;
 }
 
 
@@ -931,8 +1022,14 @@ function escAttr(s){ return s.replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
 // ══════════════════════════════════════════
 //  模块1：好词好句库
 // ══════════════════════════════════════════
-function initVocab(){
-  const cats = Object.keys(VOCAB_DATA);
+async function initVocab(){
+  const vocabData = await loadVocabFromDB();
+  if (!vocabData) {
+    showToast('❌ 加载词库失败');
+    return;
+  }
+
+  const cats = Object.keys(vocabData);
   const tabsEl = document.getElementById("vocabTabs");
   const contEl = document.getElementById("vocabContent");
 
@@ -948,10 +1045,10 @@ function initVocab(){
     const sec = document.createElement("div");
     sec.className = "vocab-section"+(i===0?" active":"");
     sec.id = "vs-"+i;
-    
+
     // 存储完整数据
-    sec.dataset.words = JSON.stringify(VOCAB_DATA[cat].words);
-    sec.dataset.sentences = JSON.stringify(VOCAB_DATA[cat].sentences);
+    sec.dataset.words = JSON.stringify(vocabData[cat].words);
+    sec.dataset.sentences = JSON.stringify(vocabData[cat].sentences);
 
     // 首次渲染随机内容
     renderVocabCategory(sec);
@@ -964,24 +1061,30 @@ function initVocab(){
 function renderVocabCategory(secEl){
   const words = JSON.parse(secEl.dataset.words || "[]");
   const sentences = JSON.parse(secEl.dataset.sentences || "[]");
-  
+
   // 随机抽取6个词和6个句
   const randomWords = shuffle(words).slice(0, 6);
   const randomSentences = shuffle(sentences).slice(0, 6);
 
   let html = `<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px"><div class="card-title" style="margin:0">💎 好词（点击复制）</div><button class="refresh-btn" onclick="refreshVocab(this, 'words')" style="padding:6px 12px;border-radius:8px;border:none;background:var(--primary-light);color:white;cursor:pointer;font-size:.78rem;font-weight:600">换一批 🔄</button></div><div class="vocab-grid">`;
   randomWords.forEach(w=>{
-    html += `<div class="vocab-card" onclick="copyText('${escAttr(w.w)}');addScore(1,'vocab')">
-      <div class="vocab-word">${w.w}</div>
-      <div class="vocab-example">${w.eg}</div>
+    // 兼容新旧格式：数据库只存 content，旧格式有 w 和 eg
+    const word = typeof w === 'string' ? w : w.w;
+    const example = typeof w === 'object' && w.eg ? w.eg : '';
+    html += `<div class="vocab-card" onclick="copyText('${escAttr(word)}');addScore(1,'vocab')">
+      <div class="vocab-word">${word}</div>
+      ${example ? `<div class="vocab-example">${example}</div>` : ''}
     </div>`;
   });
   html += `</div></div>`;
 
   html += `<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px"><div class="card-title" style="margin:0">✍️ 好句（点击复制）</div><button class="refresh-btn" onclick="refreshVocab(this, 'sentences')" style="padding:6px 12px;border-radius:8px;border:none;background:var(--primary-light);color:white;cursor:pointer;font-size:.78rem;font-weight:600">换一批 🔄</button></div><ul class="sentence-list">`;
   randomSentences.forEach(s=>{
-    html += `<li onclick="copyText('${escAttr(s.s)}');addScore(2,'vocab')">
-      <span class="s-type">${s.type}</span>${s.s}</li>`;
+    // 兼容新旧格式：数据库存 {type, content}，旧格式有 s 和 type
+    const sentence = typeof s === 'string' ? s : s.s;
+    const type = typeof s === 'object' ? (s.type || '句子') : '句子';
+    html += `<li onclick="copyText('${escAttr(sentence)}');addScore(2,'vocab')">
+      <span class="s-type">${type}</span>${sentence}</li>`;
   });
   html += `</ul></div>`;
 
@@ -1037,7 +1140,7 @@ function shuffle(array){
 
 let currentVocabIdx = 0;
 function switchVocabTab(cat){
-  const cats = Object.keys(VOCAB_DATA);
+  const cats = Object.keys(getVocabDataSync());
   const idx  = cats.indexOf(cat);
   currentVocabIdx = idx;
   document.querySelectorAll(".vtab").forEach((b,i)=>b.classList.toggle("active",i===idx));
@@ -1046,11 +1149,17 @@ function switchVocabTab(cat){
 
 // ── 我的好词好句 ──
 // 初始化分类下拉菜单
-function initCategorySelects(){
-  const cats = Object.keys(VOCAB_DATA);
+async function initCategorySelects(){
+  const vocabData = await loadVocabFromDB();
+  if (!vocabData) {
+    showToast('❌ 加载词库失败');
+    return;
+  }
+
+  const cats = Object.keys(vocabData);
   const wordSelect = document.getElementById("newWordCat");
   const sentSelect = document.getElementById("newSentCat");
-  
+
   cats.forEach(cat => {
     wordSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
     sentSelect.innerHTML += `<option value="${cat}">${cat}</option>`;

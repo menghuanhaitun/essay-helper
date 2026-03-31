@@ -635,23 +635,26 @@ function updateLoginButton() {
   if (isLoggedIn()) {
     const username = localStorage.getItem('username') || '用户';
     loginBtn.textContent = username;
-    loginBtn.style.background = 'var(--primary)';
-    loginBtn.style.color = 'white';
-    loginBtn.style.borderColor = 'var(--primary)';
-    loginBtn.onclick = function() {
-      if (confirm('确定要退出登录吗？')) {
-        handleLogout();
-      }
-    };
+    loginBtn.style.background = 'var(--primary) !important';
+    loginBtn.style.color = 'white !important';
+    loginBtn.style.borderColor = 'var(--primary) !important';
+    loginBtn.onclick = handleLogoutClick;
   } else {
     loginBtn.textContent = '🔐 登录';
-    loginBtn.style.background = 'white';
-    loginBtn.style.color = 'var(--primary)';
-    loginBtn.style.borderColor = '#e0d9ff';
+    loginBtn.style.background = 'white !important';
+    loginBtn.style.color = 'var(--primary) !important';
+    loginBtn.style.borderColor = '#e0d9ff !important';
     loginBtn.onclick = showLoginModal;
   }
 
   updateAppTitle();
+}
+
+// 处理点击用户名（登出确认）
+function handleLogoutClick() {
+  if (confirm('确定要退出登录吗？')) {
+    handleLogout();
+  }
 }
 
 // 更新应用标题

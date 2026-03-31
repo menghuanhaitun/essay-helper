@@ -654,8 +654,12 @@ function updateLoginButton() {
 
 // 处理点击用户名（登出确认）
 function handleLogoutClick() {
+  console.log('handleLogoutClick 被调用');
   if (confirm('确定要退出登录吗？')) {
+    console.log('用户确认退出');
     handleLogout();
+  } else {
+    console.log('用户取消退出');
   }
 }
 
@@ -677,14 +681,17 @@ function updateAppTitle() {
 
 // 登出
 function handleLogout() {
-  if (!confirm('确定要退出登录吗？')) {
-    return;
-  }
+  console.log('handleLogout 被调用');
+  console.log('退出前 token:', localStorage.getItem('token'));
+  console.log('退出前 username:', localStorage.getItem('username'));
 
   // 清除登录信息
   localStorage.removeItem('token');
   localStorage.removeItem('username');
   localStorage.removeItem('userId');
+
+  console.log('退出后 token:', localStorage.getItem('token'));
+  console.log('退出后 username:', localStorage.getItem('username'));
 
   // 隐藏同步按钮
   document.getElementById('syncBtn').style.display = 'none';

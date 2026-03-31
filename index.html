@@ -585,13 +585,13 @@ function updateAppTitle() {
   const pageTitle = document.getElementById('pageTitle');
 
   if (isLoggedIn()) {
-    const username = localStorage.getItem('username') || '李欣阳';
+    const username = localStorage.getItem('username') || '小朋友';
     const titleText = `${username}的作文助手`;
     appTitle.textContent = '✍️ ' + titleText;
     pageTitle.textContent = titleText + ' ✍️';
   } else {
-    appTitle.textContent = '✍️ 李欣阳的作文助手';
-    pageTitle.textContent = '李欣阳的作文助手 ✍️';
+    appTitle.textContent = '✍️ 小朋友的作文助手';
+    pageTitle.textContent = '小朋友的作文助手 ✍️';
   }
 }
 

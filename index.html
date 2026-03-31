@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>李欣阳的作文助手 ✍️</title>
+<title id="pageTitle">李欣阳的作文助手 ✍️</title>
+
 <style>
   :root {
     --primary: #6c63ff;
@@ -32,8 +33,8 @@
   .score-num  { font-weight:700; color:var(--primary); font-size:1.1rem; }
   .level-badge { background:linear-gradient(135deg,var(--primary),var(--secondary)); color:white; padding:3px 14px; border-radius:20px; font-weight:700; font-size:.85rem; }
 
-  /* 导航 */
-  nav { display:flex; gap:8px; padding:14px 16px; overflow-x:auto; background:white; border-bottom:2px solid #f0ecff; position:sticky; top:0; z-index:100; }
+/* 导航 */
+nav { display:flex; gap:8px; padding:14px 16px; overflow-x:auto; background:white; border-bottom:2px solid #f0ecff; position:sticky; top:0; z-index:100; justify-content:center; }
   nav::-webkit-scrollbar { height:4px; }
   nav::-webkit-scrollbar-thumb { background:var(--primary-light); border-radius:2px; }
   .nav-btn { flex-shrink:0; padding:8px 18px; border-radius:24px; border:2px solid #e0d9ff; background:white; color:var(--primary); font-size:.88rem; font-weight:600; cursor:pointer; transition:all .2s; white-space:nowrap; }
@@ -184,13 +185,90 @@
   /* 星星 */
   .star-particle { position:fixed; pointer-events:none; z-index:9998; font-size:1.2rem; animation:floatUp 1.2s ease forwards; }
   @keyframes floatUp { 0%{opacity:1;transform:translateY(0) scale(1);} 100%{opacity:0;transform:translateY(-80px) scale(.5);} }
+
+  /* 登录界面样式 */
+  .login-modal {
+    position:fixed; top:0; left:0; right:0; bottom:0;
+    background:linear-gradient(135deg,rgba(108,99,255,0.95),rgba(253,121,168,0.95));
+    display:flex; align-items:center; justify-content:center; z-index:9999;
+  }
+  .login-box {
+    background:white; border-radius:20px; padding:30px; width:90%; max-width:380px;
+    box-shadow:0 10px 40px rgba(0,0,0,0.3); text-align:center;
+  }
+  .login-box h2 { font-size:1.4rem; color:var(--primary); margin-bottom:8px; }
+  .login-box p { font-size:.85rem; color:#636e72; margin-bottom:20px; }
+  .login-tabs { display:flex; gap:10px; margin-bottom:20px; justify-content:center; }
+  .login-tab {
+    padding:8px 24px; border-radius:20px; border:2px solid #e0d9ff;
+    background:white; color:var(--primary); font-size:.9rem; font-weight:700; cursor:pointer;
+  }
+  .login-tab.active { background:var(--primary); color:white; border-color:var(--primary); }
+  .login-form input {
+    width:100%; margin-bottom:12px; padding:12px 16px; border:2px solid #e0d9ff;
+    border-radius:10px; font-size:.95rem; outline:none; box-sizing:border-box;
+  }
+  .login-form input:focus { border-color:var(--primary); }
+  .login-btn {
+    width:100%; padding:12px; border:none; border-radius:10px;
+    background:linear-gradient(135deg,var(--primary),var(--secondary));
+    color:white; font-size:1rem; font-weight:700; cursor:pointer; margin-bottom:10px;
+  }
+  .skip-btn { background:none; border:none; color:#b2bec3; cursor:pointer; font-size:.85rem; }
+  .skip-btn:hover { color:var(--primary); }
+  .sync-btn {
+    position:absolute; top:20px; right:20px; padding:6px 16px;
+    border-radius:20px; border:none; background:rgba(255,255,255,0.3);
+    color:white; font-size:.85rem; font-weight:700; cursor:pointer;
+  }
+  .sync-menu {
+    position:fixed; top:60px; right:20px; background:white; border-radius:12px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.2); padding:10px; z-index:1000;
+    display:none; min-width:140px;
+  }
+  .sync-menu button {
+    width:100%; padding:8px 16px; border:none; background:none; text-align:left;
+    font-size:.88rem; cursor:pointer; border-radius:6px; color:var(--text);
+  }
+  .sync-menu button:hover { background:#f0ecff; }
 </style>
 </head>
 <body>
 
+<!-- 登录界面 -->
+<div id="loginModal" class="login-modal" style="display:none;">
+  <div class="login-box">
+    <h2>🌟 欢迎使用作文助手</h2>
+    <p>登录后可以在多个设备上同步你的积分和好词好句</p>
+
+    <div class="login-tabs">
+      <button class="login-tab active" onclick="switchLoginTab('login')">登录</button>
+      <button class="login-tab" onclick="switchLoginTab('register')">注册</button>
+    </div>
+
+    <!-- 登录表单 -->
+    <div id="loginForm" class="login-form">
+      <input type="text" id="loginUser" placeholder="用户名">
+      <input type="password" id="loginPass" placeholder="密码">
+      <button class="login-btn" onclick="handleLogin()">登录</button>
+      <button class="skip-btn" onclick="skipLogin()">暂时不登录，先看看</button>
+    </div>
+
+    <!-- 注册表单 -->
+    <div id="registerForm" class="login-form" style="display:none;">
+      <input type="text" id="regUser" placeholder="设置用户名">
+      <input type="password" id="regPass" placeholder="设置密码">
+      <input type="password" id="regPass2" placeholder="确认密码">
+      <button class="login-btn" onclick="handleRegister()">注册</button>
+      <button class="skip-btn" onclick="skipLogin()">暂时不登录，先看看</button>
+    </div>
+  </div>
+</div>
+
 <header>
-  <h1>✍️ 李欣阳的作文助手</h1>
+  <h1 id="appTitle">✍️ 李欣阳的作文助手</h1>
   <p>好词好句 · 写作框架 · 句子升级 · 范文拆解 · 写作练习</p>
+  <button id="syncBtn" class="sync-btn" onclick="showSyncMenu()" style="display:none;">☁️ 同步</button>
 </header>
 
 <!-- 积分条 -->
@@ -209,6 +287,10 @@
   <button class="nav-btn" onclick="switchModule('essay',this)">🔍 范文拆解</button>
   <button class="nav-btn" onclick="switchModule('practice',this)">✏️ 写作练习</button>
   <button class="nav-btn" onclick="switchModule('badges',this)">🏆 荣誉墙</button>
+  <button class="nav-btn" id="loginBtn" onclick="showLoginModal()">🔐 登录</button>
+  <button class="nav-btn" id="userActions" style="display:none;">
+    <span id="welcomeUser">用户</span>
+  </button>
 </nav>
 
 <main>
@@ -351,11 +433,241 @@
 
 <!-- 加载独立词库文件 -->
 <script src="vocab-data.js"></script>
+<script src="cloud-api.js"></script>
 
 <script>
 // ══════════════════════════════════════════
 //  数据层（词库已提取到 vocab-data.js）
 // ══════════════════════════════════════════
+
+// ══════════════════════════════════════════
+//  登录和云同步功能
+// ══════════════════════════════════════════
+
+// 页面加载时检查登录状态
+window.onload = function() {
+  // 检查是否已经登录
+  if (isLoggedIn()) {
+    document.getElementById('loginModal').style.display = 'none';
+    document.getElementById('syncBtn').style.display = 'block';
+  } else {
+    // 如果没有登录，检查是否有本地数据
+    const hasLocalData = localStorage.getItem(STORE_KEY);
+    if (!hasLocalData) {
+      // 首次访问，显示登录界面
+      document.getElementById('loginModal').style.display = 'flex';
+    }
+  }
+
+  updateLoginButton();
+
+  // 原有的初始化
+  loadState();
+  updateScoreBar();
+  initVocab();
+  initGuide();
+  initUpgrade();
+  initEssay();
+  initPractice();
+  initCategorySelects();
+  renderMyVocab();
+};
+
+// 切换登录/注册标签
+function switchLoginTab(type) {
+  const loginForm = document.getElementById('loginForm');
+  const regForm = document.getElementById('registerForm');
+  const tabs = document.querySelectorAll('.login-tab');
+
+  tabs.forEach(t => t.classList.remove('active'));
+  if (type === 'login') {
+    tabs[0].classList.add('active');
+    loginForm.style.display = 'block';
+    regForm.style.display = 'none';
+  } else {
+    tabs[1].classList.add('active');
+    loginForm.style.display = 'none';
+    regForm.style.display = 'block';
+  }
+}
+
+// 处理登录
+async function handleLogin() {
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value.trim();
+
+  if (!username || !password) {
+    showToast('请输入用户名和密码');
+    return;
+  }
+
+  try {
+    await cloudLogin(username, password);
+    document.getElementById('loginModal').style.display = 'none';
+    document.getElementById('syncBtn').style.display = 'block';
+    updateLoginButton();
+    showToast('✅ 登录成功！');
+
+    // 从云端同步数据
+    const result = await syncFromCloud();
+    if (result.success) {
+      showToast('✅ ' + result.message + '，积分和好词好句已同步');
+    }
+  } catch (error) {
+    showToast('❌ ' + error.message);
+  }
+}
+
+// 处理注册
+async function handleRegister() {
+  const username = document.getElementById('regUser').value.trim();
+  const password = document.getElementById('regPass').value.trim();
+  const password2 = document.getElementById('regPass2').value.trim();
+
+  if (!username || !password) {
+    showToast('请输入用户名和密码');
+    return;
+  }
+
+  if (password !== password2) {
+    showToast('两次密码不一致');
+    return;
+  }
+
+  if (password.length < 4) {
+    showToast('密码至少4位');
+    return;
+  }
+
+  try {
+    await cloudRegister(username, password);
+    document.getElementById('loginModal').style.display = 'none';
+    document.getElementById('syncBtn').style.display = 'block';
+    updateLoginButton();
+    showToast('✅ 注册成功！欢迎加入！');
+  } catch (error) {
+    showToast('❌ ' + error.message);
+  }
+}
+
+// 跳过登录
+function skipLogin() {
+  document.getElementById('loginModal').style.display = 'none';
+  showToast('您可以先体验功能，稍后在右上角登录同步数据');
+}
+
+// 显示登录界面
+function showLoginModal() {
+  document.getElementById('loginModal').style.display = 'flex';
+}
+
+// 更新登录按钮状态
+function updateLoginButton() {
+  const loginBtn = document.getElementById('loginBtn');
+  const userActions = document.getElementById('userActions');
+  const welcomeUser = document.getElementById('welcomeUser');
+
+  if (isLoggedIn()) {
+    loginBtn.style.display = 'none';
+    userActions.style.display = 'block';
+    welcomeUser.textContent = localStorage.getItem('username') || '用户';
+  } else {
+    loginBtn.style.display = 'block';
+    userActions.style.display = 'none';
+  }
+
+  updateAppTitle();
+}
+
+// 更新应用标题
+function updateAppTitle() {
+  const appTitle = document.getElementById('appTitle');
+  const pageTitle = document.getElementById('pageTitle');
+
+  if (isLoggedIn()) {
+    const username = localStorage.getItem('username') || '小朋友';
+    const titleText = `${username}的作文助手`;
+    appTitle.textContent = '✍️ ' + titleText;
+    pageTitle.textContent = titleText + ' ✍️';
+  } else {
+    appTitle.textContent = '✍️ 小朋友的作文助手';
+    pageTitle.textContent = '小朋友的作文助手 ✍️';
+  }
+}
+
+
+
+
+// 显示同步菜单
+function showSyncMenu() {
+  const menu = document.getElementById('syncMenu');
+  if (!menu) {
+    // 创建菜单
+    const menuEl = document.createElement('div');
+    menuEl.id = 'syncMenu';
+    menuEl.className = 'sync-menu';
+    menuEl.innerHTML = `
+      <button onclick="syncToCloudNow()">☁️ 上传到云端</button>
+      <button onclick="syncFromCloudNow()">☁️ 从云端下载</button>
+      <button onclick="cloudLogoutNow()">🚪 退出登录</button>
+    `;
+    document.body.appendChild(menuEl);
+  }
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+// 上传到云端
+async function syncToCloudNow() {
+  document.getElementById('syncMenu').style.display = 'none';
+  showToast('正在上传...', 1000);
+
+  const result = await syncToCloud();
+  if (result.success) {
+    showToast('✅ ' + result.message);
+  } else {
+    showToast('❌ ' + result.message);
+  }
+}
+
+// 从云端下载
+async function syncFromCloudNow() {
+  document.getElementById('syncMenu').style.display = 'none';
+  showToast('正在下载...', 1000);
+
+  const result = await syncFromCloud();
+  if (result.success) {
+    showToast('✅ ' + result.message);
+    renderMyVocab();
+  } else {
+    showToast('❌ ' + result.message);
+  }
+}
+
+// 退出登录
+function cloudLogoutNow() {
+  document.getElementById('syncMenu').style.display = 'none';
+  if (confirm('确定要退出登录吗？退出后数据将只保存在本地。')) {
+    cloudLogout();
+    document.getElementById('syncBtn').style.display = 'none';
+    updateLoginButton();
+    showToast('👋 已退出登录');
+  }
+}
+
+
+// 修改原有的保存函数，添加自动同步
+const originalSaveState = saveState;
+saveState = function() {
+  originalSaveState();
+
+  // 如果已登录，自动同步到云端（防抖，避免频繁请求）
+  if (isLoggedIn()) {
+    if (window.syncTimeout) clearTimeout(window.syncTimeout);
+    window.syncTimeout = setTimeout(() => {
+      syncToCloud();
+    }, 3000); // 3秒后自动同步
+  }
+};
 
 const GUIDE_DATA = {
   "写人":{
@@ -992,14 +1304,8 @@ function renderBadges(){
 }
 
 // ══════════════════════════════════════════
-//  初始化
+//  初始化（已合并到上面的 window.onload）
 // ══════════════════════════════════════════
-window.onload=function(){
-  loadState(); updateScoreBar();
-  initVocab(); initGuide(); initUpgrade(); initEssay(); initPractice();
-  initCategorySelects();
-  renderMyVocab();
-};
 </script>
 </body>
 </html>

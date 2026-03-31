@@ -13,24 +13,35 @@ export async function onRequest({ request, env, params }) {
   const path = params.path || [];
   const action = path[0];
 
-  switch (action) {
-    case 'register':
-      return await handleRegister(request, env, corsHeaders);
-    case 'login':
-      return await handleLogin(request, env, corsHeaders);
-    case 'verify':
-      return await handleVerify(request, env, corsHeaders);
-    case 'user-data':
-      if (request.method === 'GET') {
-        return await handleGetUserData(request, env, corsHeaders);
-      } else if (request.method === 'POST') {
-        return await handleSaveUserData(request, env, corsHeaders);
-      }
-      break;
-    default:
-      if (action === 'user-data' && path[1] && request.method === 'DELETE') {
-        return await handleDeleteUserData(request, env, corsHeaders, path[1]);
-      }
+  // 处理 register
+  if (action === 'register' && request.method === 'POST') {
+    return await handleRegister(request, env, corsHeaders);
+  }
+
+  // 处理 login
+  if (action === 'login' && request.method === 'POST') {
+    return await handleLogin(request, env, corsHeaders);
+  }
+
+  // 处理 verify
+  if (action === 'verify' && request.method === 'POST') {
+    return await handleVerify(request, env, corsHeaders);
+  }
+
+  // 处理 user-data
+  if (action === 'user-data') {
+    // DELETE /api/user-data/:id
+    if (path[1] && request.method === 'DELETE') {
+      return await handleDeleteUserData(request, env, corsHeaders, path[1]);
+    }
+    // GET /api/user-data
+    if (request.method === 'GET') {
+      return await handleGetUserData(request, env, corsHeaders);
+    }
+    // POST /api/user-data
+    if (request.method === 'POST') {
+      return await handleSaveUserData(request, env, corsHeaders);
+    }
   }
 
   return jsonResponse({ error: 'Not found' }, 404, corsHeaders);

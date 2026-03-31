@@ -1,8 +1,0 @@
-# Cloudflare Pages 配置文件
-compatibility_date = "2024-01-01"
-
-# Pages Functions 使用相同的 D1 数据库绑定
-[[d1_databases]]
-binding = "DB"
-database_name = "essay-helper-db"
-database_id = "f1b509bf-5c20-4151-a3fa-81b39427b052"

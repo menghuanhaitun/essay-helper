@@ -8,21 +8,34 @@ function isLoggedIn() {
 
 // 注册
 async function cloudRegister(username, password) {
-  const response = await fetch(CLOUD_API_BASE + '/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
+  try {
+    const response = await fetch(CLOUD_API_BASE + '/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || '注册失败');
+    const text = await response.text();
+    console.log('注册响应:', response.status, text);
+
+    if (!response.ok) {
+      try {
+        const data = JSON.parse(text);
+        throw new Error(data.error || '注册失败');
+      } catch (e) {
+        throw new Error('注册失败: ' + text);
+      }
+    }
+
+    const data = JSON.parse(text);
+    // 保存用户信息
+    localStorage.setItem('userId', data.userId);
+    localStorage.setItem('username', username);
+    return data;
+  } catch (error) {
+    console.error('注册错误:', error);
+    throw error;
   }
-
-  // 保存用户信息
-  localStorage.setItem('userId', data.userId);
-  localStorage.setItem('username', username);
-  return data;
 }
 
 // 登录

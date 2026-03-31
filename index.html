@@ -288,7 +288,7 @@ nav { display:flex; gap:8px; padding:14px 16px; overflow-x:auto; background:whit
   <button class="nav-btn" onclick="switchModule('essay',this)">🔍 范文拆解</button>
   <button class="nav-btn" onclick="switchModule('practice',this)">✏️ 写作练习</button>
   <button class="nav-btn" onclick="switchModule('badges',this)">🏆 荣誉墙</button>
-  <button class="nav-btn" id="loginBtn" onclick="showLoginModal()">🔐 登录</button>
+  <button class="nav-btn" id="loginBtn">🔐 登录</button>
 </nav>
 
 <main>
@@ -514,6 +514,10 @@ function isLoggedIn() {
 
 // 页面加载时检查登录状态
 window.onload = async function() {
+  // 初始化登录按钮点击事件
+  const loginBtn = document.getElementById('loginBtn');
+  loginBtn.onclick = showLoginModal;
+
   // 检查是否已经登录
   if (isLoggedIn()) {
     document.getElementById('loginModal').style.display = 'none';

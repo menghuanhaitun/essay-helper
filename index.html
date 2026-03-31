@@ -464,12 +464,11 @@ window.onload = function() {
   // 原有的初始化
   loadState();
   updateScoreBar();
-  initVocab();
+  initVocab();  // async，词库加载完后内部会调 initCategorySelects
   initGuide();
   initUpgrade();
   initEssay();
   initPractice();
-  initCategorySelects();
   renderMyVocab();
 };
 
@@ -931,33 +930,58 @@ function escAttr(s){ return s.replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
 // ══════════════════════════════════════════
 //  模块1：好词好句库
 // ══════════════════════════════════════════
-function initVocab(){
-  const cats = Object.keys(VOCAB_DATA);
+
+// 渲染词库（接收数据对象）
+function buildVocabUI(vocabData){
+  const cats = Object.keys(vocabData);
   const tabsEl = document.getElementById("vocabTabs");
   const contEl = document.getElementById("vocabContent");
+  tabsEl.innerHTML = '';
+  contEl.innerHTML = '';
 
   cats.forEach((cat,i)=>{
-    // Tab 按钮
     const btn = document.createElement("button");
     btn.className = "vtab"+(i===0?" active":"");
     btn.textContent = cat;
     btn.onclick = ()=>switchVocabTab(cat);
     tabsEl.appendChild(btn);
 
-    // Section
     const sec = document.createElement("div");
     sec.className = "vocab-section"+(i===0?" active":"");
     sec.id = "vs-"+i;
-    
-    // 存储完整数据
-    sec.dataset.words = JSON.stringify(VOCAB_DATA[cat].words);
-    sec.dataset.sentences = JSON.stringify(VOCAB_DATA[cat].sentences);
 
-    // 首次渲染随机内容
+    sec.dataset.words = JSON.stringify(vocabData[cat].words || []);
+    sec.dataset.sentences = JSON.stringify(vocabData[cat].sentences || []);
+
     renderVocabCategory(sec);
-
     contEl.appendChild(sec);
   });
+
+  // 词库渲染完毕，同步更新分类下拉选项
+  initCategorySelects();
+}
+
+async function initVocab(){
+  const contEl = document.getElementById("vocabContent");
+  contEl.innerHTML = '<p style="text-align:center;padding:32px;color:var(--text-light)">⏳ 正在加载词库…</p>';
+
+  try {
+    const res = await fetch(CLOUD_API_BASE + '/vocab-library');
+    const json = await res.json();
+    if (json.success && json.data && Object.keys(json.data).length > 0) {
+      buildVocabUI(json.data);
+      return;
+    }
+  } catch(e) {
+    // 网络失败，走兜底
+  }
+
+  // 兜底：使用本地 vocab-data.js
+  if (typeof VOCAB_DATA !== 'undefined') {
+    buildVocabUI(VOCAB_DATA);
+  } else {
+    contEl.innerHTML = '<p style="text-align:center;padding:32px;color:#e17055">⚠️ 词库加载失败，请刷新重试</p>';
+  }
 }
 
 // 渲染单个分类的内容（随机6个词+6个句）
@@ -1037,20 +1061,26 @@ function shuffle(array){
 
 let currentVocabIdx = 0;
 function switchVocabTab(cat){
-  const cats = Object.keys(VOCAB_DATA);
-  const idx  = cats.indexOf(cat);
+  // 直接用 DOM 里的 tab 按钮顺序找 idx，不依赖 VOCAB_DATA
+  const tabs = Array.from(document.querySelectorAll(".vtab"));
+  const idx  = tabs.findIndex(b => b.textContent === cat);
+  if(idx === -1) return;
   currentVocabIdx = idx;
-  document.querySelectorAll(".vtab").forEach((b,i)=>b.classList.toggle("active",i===idx));
+  tabs.forEach((b,i)=>b.classList.toggle("active",i===idx));
   document.querySelectorAll(".vocab-section").forEach((s,i)=>s.classList.toggle("active",i===idx));
 }
 
 // ── 我的好词好句 ──
 // 初始化分类下拉菜单
 function initCategorySelects(){
-  const cats = Object.keys(VOCAB_DATA);
+  // 从已渲染的 tab 按钮读分类名，不依赖 VOCAB_DATA
+  const tabs = Array.from(document.querySelectorAll(".vtab"));
+  const cats = tabs.map(b => b.textContent);
   const wordSelect = document.getElementById("newWordCat");
   const sentSelect = document.getElementById("newSentCat");
-  
+  // 保留第一个"选择分类"占位 option，清除之前旧的分类 options
+  wordSelect.innerHTML = '<option value="">选择分类</option>';
+  sentSelect.innerHTML = '<option value="">选择分类</option>';
   cats.forEach(cat => {
     wordSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
     sentSelect.innerHTML += `<option value="${cat}">${cat}</option>`;

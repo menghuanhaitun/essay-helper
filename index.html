@@ -40,6 +40,7 @@ nav { display:flex; gap:8px; padding:14px 16px; overflow-x:auto; background:whit
   .nav-btn { flex-shrink:0; padding:8px 18px; border-radius:24px; border:2px solid #e0d9ff; background:white; color:var(--primary); font-size:.88rem; font-weight:600; cursor:pointer; transition:all .2s; white-space:nowrap; }
   .nav-btn:hover  { background:#f0ecff; }
   .nav-btn.active { background:var(--primary); color:white; border-color:var(--primary); }
+  .nav-btn.logged-in { background:var(--secondary) !important; color:white !important; border-color:var(--secondary) !important; }
 
   /* 主内容 */
   main { max-width:860px; margin:0 auto; padding:20px 16px 60px; }
@@ -635,15 +636,12 @@ function updateLoginButton() {
   if (isLoggedIn()) {
     const username = localStorage.getItem('username') || '用户';
     loginBtn.textContent = username;
-    loginBtn.style.background = 'var(--primary) !important';
-    loginBtn.style.color = 'white !important';
-    loginBtn.style.borderColor = 'var(--primary) !important';
+    loginBtn.classList.add('logged-in');
+    loginBtn.classList.remove('active');
     loginBtn.onclick = handleLogoutClick;
   } else {
     loginBtn.textContent = '🔐 登录';
-    loginBtn.style.background = 'white !important';
-    loginBtn.style.color = 'var(--primary) !important';
-    loginBtn.style.borderColor = '#e0d9ff !important';
+    loginBtn.classList.remove('logged-in');
     loginBtn.onclick = showLoginModal;
   }
 

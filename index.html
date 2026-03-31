@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">李欣阳的作文助手 ✍️</title>
+
+<style>
+  :root {
+    --primary: #6c63ff;
+    --primary-light: #a29bfe;
+    --secondary: #fd79a8;
+    --accent2: #fdcb6e;
+    --bg: #f8f6ff;
+    --card: #ffffff;
+    --text: #2d3436;
+    --text-light: #636e72;
+    --radius: 16px;
+    --shadow: 0 4px 20px rgba(108,99,255,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Microsoft YaHei","PingFang SC",sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* 顶部 */
+  header { background: linear-gradient(135deg,#6c63ff 0%,#a29bfe 50%,#fd79a8 100%); color:white; text-align:center; padding:28px 20px 22px; position:relative; overflow:hidden; }
+  header::before { content:"✍️📝📖🌟💡"; position:absolute; top:8px; left:0; right:0; font-size:1.4rem; letter-spacing:12px; opacity:.22; }
+  header h1 { font-size:1.9rem; font-weight:700; letter-spacing:2px; }
+  header p  { font-size:.95rem; margin-top:6px; opacity:.9; }
+
+  /* 积分条 */
+  .score-bar { display:flex; align-items:center; justify-content:center; gap:18px; background:white; padding:10px 20px; box-shadow:0 2px 8px rgba(0,0,0,.06); font-size:.9rem; flex-wrap:wrap; }
+  .score-item { display:flex; align-items:center; gap:6px; }
+  .score-num  { font-weight:700; color:var(--primary); font-size:1.1rem; }
+  .level-badge { background:linear-gradient(135deg,var(--primary),var(--secondary)); color:white; padding:3px 14px; border-radius:20px; font-weight:700; font-size:.85rem; }
+
+/* 导航 */
+nav { display:flex; gap:8px; padding:14px 16px; overflow-x:auto; background:white; border-bottom:2px solid #f0ecff; position:sticky; top:0; z-index:100; justify-content:center; }
+  nav::-webkit-scrollbar { height:4px; }
+  nav::-webkit-scrollbar-thumb { background:var(--primary-light); border-radius:2px; }
+  .nav-btn { flex-shrink:0; padding:8px 18px; border-radius:24px; border:2px solid #e0d9ff; background:white; color:var(--primary); font-size:.88rem; font-weight:600; cursor:pointer; transition:all .2s; white-space:nowrap; }
+  .nav-btn:hover  { background:#f0ecff; }
+  .nav-btn.active { background:var(--primary); color:white; border-color:var(--primary); }
+
+  /* 主内容 */
+  main { max-width:860px; margin:0 auto; padding:20px 16px 60px; }
+  .module { display:none; }
+  .module.active { display:block; }
+
+  /* 通用卡片 */
+  .card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:22px; margin-bottom:18px; }
+  .card-title { font-size:1.1rem; font-weight:700; color:var(--primary); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+
+  /* ── 好词好句 ── */
+  .vtab-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .vtab { padding:6px 16px; border-radius:20px; border:2px solid #e0d9ff; background:white; color:var(--primary); font-size:.85rem; font-weight:600; cursor:pointer; transition:all .2s; }
+  .vtab.active { background:var(--primary); color:white; border-color:var(--primary); }
+  .vocab-section { display:none; }
+  .vocab-section.active { display:block; }
+  .vocab-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(195px,1fr)); gap:12px; }
+  .vocab-card { background:linear-gradient(135deg,#f8f6ff,#fff); border:1.5px solid #e8e0ff; border-radius:12px; padding:14px; cursor:pointer; transition:all .2s; }
+  .vocab-card:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(108,99,255,.15); }
+  .vocab-word { font-size:1.05rem; font-weight:700; color:var(--primary); margin-bottom:6px; }
+  .vocab-example { font-size:.82rem; color:var(--text-light); line-height:1.5; }
+  .sentence-list { list-style:none; }
+  .sentence-list li { padding:12px 16px; margin-bottom:10px; background:#f8f6ff; border-left:4px solid var(--primary-light); border-radius:0 10px 10px 0; font-size:.9rem; line-height:1.7; cursor:pointer; transition:all .2s; }
+  .sentence-list li:hover { background:#ede9ff; border-left-color:var(--primary); }
+  .s-type { display:inline-block; font-size:.72rem; padding:1px 8px; background:var(--primary-light); color:white; border-radius:8px; margin-right:6px; font-weight:600; }
+
+  /* 自定义好词好句 */
+  .my-vocab-add { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; align-items:flex-end; }
+  .my-vocab-add input, .my-vocab-add textarea { border:2px solid #e0d9ff; border-radius:10px; padding:8px 12px; font-size:.88rem; outline:none; font-family:inherit; transition:border-color .2s; }
+  .my-vocab-add input:focus, .my-vocab-add textarea:focus { border-color:var(--primary); }
+  .my-vocab-add input { flex:1; min-width:100px; height:40px; }
+  .my-vocab-add textarea { flex:2; min-width:160px; height:40px; resize:none; }
+  .add-btn { padding:8px 20px; border-radius:10px; border:none; background:var(--primary); color:white; font-size:.88rem; font-weight:700; cursor:pointer; transition:all .2s; white-space:nowrap; height:40px; }
+  .add-btn:hover { background:#5a52d5; }
+  .my-item { display:flex; align-items:flex-start; gap:10px; padding:10px 14px; margin-bottom:8px; background:#f8f6ff; border:1.5px solid #e8e0ff; border-radius:10px; }
+  .my-item-content { flex:1; }
+  .my-item-word { font-weight:700; color:var(--primary); font-size:.95rem; }
+  .my-item-eg { font-size:.82rem; color:var(--text-light); margin-top:3px; line-height:1.5; }
+  .my-item-type { font-size:.72rem; background:#fff3cd; color:#856404; border-radius:6px; padding:1px 7px; margin-right:6px; }
+  .del-btn { background:none; border:none; color:#b2bec3; cursor:pointer; font-size:1.1rem; padding:0 4px; transition:color .2s; }
+  .del-btn:hover { color:#e17055; }
+  .copy-btn { background:none; border:none; color:var(--primary-light); cursor:pointer; font-size:.85rem; padding:0 6px; }
+  .copy-btn:hover { color:var(--primary); }
+  .score-tip { font-size:.78rem; color:#00b894; font-weight:700; }
+
+  /* ── 作文引导 ── */
+  .guide-types { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
+  .type-btn { padding:10px 20px; border-radius:14px; border:2px solid #e0d9ff; background:white; cursor:pointer; font-size:.9rem; font-weight:600; color:var(--primary); transition:all .2s; }
+  .type-btn:hover  { background:#f0ecff; }
+  .type-btn.active { background:var(--primary); color:white; border-color:var(--primary); }
+  .topic-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; margin-bottom:20px; }
+  .topic-item { padding:12px; border-radius:12px; text-align:center; background:linear-gradient(135deg,#f0ecff,#fff); border:1.5px solid #e0d9ff; cursor:pointer; font-size:.88rem; font-weight:600; color:var(--text); transition:all .2s; }
+  .topic-item:hover  { border-color:var(--primary); color:var(--primary); transform:translateY(-1px); }
+  .topic-item.chosen { background:var(--primary); color:white; border-color:var(--primary); }
+  .framework-box { background:linear-gradient(135deg,#f8f6ff,#fff); border:2px solid #e0d9ff; border-radius:14px; padding:20px; }
+  .fw-step { display:flex; gap:14px; align-items:flex-start; margin-bottom:16px; padding-bottom:16px; border-bottom:1px dashed #e0d9ff; }
+  .fw-step:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
+  .fw-num { width:32px; height:32px; border-radius:50%; background:var(--primary); color:white; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.9rem; flex-shrink:0; }
+  .fw-content h4 { font-size:.95rem; color:var(--primary); margin-bottom:4px; }
+  .fw-content p  { font-size:.85rem; color:var(--text-light); line-height:1.6; }
+  .fw-tips { margin-top:8px; }
+  .fw-tips span { display:inline-block; background:#f0ecff; color:var(--primary); border-radius:8px; padding:2px 10px; font-size:.78rem; margin:2px; }
+
+  /* ── 句子升级 ── */
+  .upgrade-container { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  @media(max-width:600px){ .upgrade-container { grid-template-columns:1fr; } }
+  .upgrade-input-area textarea { width:100%; height:130px; border:2px solid #e0d9ff; border-radius:12px; padding:14px; font-size:.9rem; resize:vertical; outline:none; font-family:inherit; line-height:1.6; transition:border-color .2s; }
+  .upgrade-input-area textarea:focus { border-color:var(--primary); }
+  .upgrade-btn { width:100%; margin-top:10px; padding:12px; border-radius:12px; background:linear-gradient(135deg,var(--primary),var(--secondary)); color:white; border:none; font-size:.95rem; font-weight:700; cursor:pointer; transition:all .2s; }
+  .upgrade-btn:hover { transform:translateY(-1px); box-shadow:0 4px 14px rgba(108,99,255,.35); }
+  .upgrade-result-area { background:linear-gradient(135deg,#f8f6ff,#fff); border:2px solid #e0d9ff; border-radius:12px; padding:18px; min-height:130px; }
+  .placeholder { color:#b2bec3; font-size:.88rem; margin-top:30px; text-align:center; }
+  .upgrade-item { margin-bottom:14px; padding-bottom:14px; border-bottom:1px dashed #e0d9ff; }
+  .upgrade-item:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
+  .upgrade-label { font-size:.75rem; font-weight:700; padding:2px 8px; border-radius:8px; margin-bottom:5px; display:inline-block; }
+  .label-tech { background:#e8f5e9; color:#2e7d32; }
+  .label-sentence { font-size:.88rem; line-height:1.6; color:var(--text); }
+  .example-row { display:flex; gap:10px; align-items:stretch; margin-bottom:10px; cursor:pointer; }
+  .example-row:hover .ex-before { border-color:var(--primary); }
+  .ex-before,.ex-after { flex:1; padding:12px 14px; border-radius:10px; font-size:.85rem; line-height:1.6; }
+  .ex-before { background:#fff3f3; border:1.5px solid #ffb8c0; color:#c0392b; }
+  .ex-after  { background:#f0fff4; border:1.5px solid #a8e6cf; color:#1e8449; }
+  .ex-arrow  { display:flex; align-items:center; color:var(--primary-light); font-size:1.2rem; }
+
+  /* ── 范文拆解 ── */
+  .essay-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+  .etab { padding:6px 16px; border-radius:20px; border:2px solid #e0d9ff; background:white; color:var(--primary); font-size:.85rem; font-weight:600; cursor:pointer; transition:all .2s; }
+  .etab.active { background:var(--primary); color:white; border-color:var(--primary); }
+  .essay-section { display:none; }
+  .essay-section.active { display:block; }
+  .essay-block { background:#fafafa; border-radius:12px; padding:18px; margin-bottom:14px; border:1.5px solid #ede9ff; }
+  .essay-para { font-size:.92rem; line-height:1.85; color:var(--text); margin-bottom:12px; }
+  .essay-para .hl-green  { background:#d4edda; padding:0 2px; border-radius:3px; }
+  .essay-para .hl-blue   { background:#cce5ff; padding:0 2px; border-radius:3px; }
+  .essay-para .hl-orange { background:#fff3cd; padding:0 2px; border-radius:3px; }
+  .essay-para .hl-pink   { background:#fce4ec; padding:0 2px; border-radius:3px; }
+  .anno-list { margin-top:12px; }
+  .anno-item { display:flex; gap:10px; align-items:flex-start; font-size:.82rem; margin-bottom:8px; line-height:1.5; }
+  .anno-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:4px; }
+  .dot-green{background:#28a745;} .dot-blue{background:#007bff;} .dot-orange{background:#ffc107;} .dot-pink{background:#e91e63;}
+  .anno-text { color:var(--text-light); }
+  .anno-key  { font-weight:700; color:var(--text); }
+  .skill-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }
+  .skill-tag { padding:4px 12px; border-radius:12px; font-size:.78rem; font-weight:600; background:#f0ecff; color:var(--primary); }
+
+  /* ── 写作练习 ── */
+  .topic-of-day { background:linear-gradient(135deg,#6c63ff,#a29bfe); color:white; border-radius:16px; padding:20px; margin-bottom:20px; }
+  .tod-label { font-size:.78rem; opacity:.8; margin-bottom:6px; font-weight:600; letter-spacing:1px; }
+  .tod-topic { font-size:1.15rem; font-weight:700; margin-bottom:8px; }
+  .tod-hint  { font-size:.82rem; opacity:.85; line-height:1.6; }
+  .tod-change { margin-top:12px; padding:6px 16px; border-radius:10px; border:2px solid rgba(255,255,255,.4); background:transparent; color:white; font-size:.82rem; cursor:pointer; font-weight:600; }
+  .tod-change:hover { background:rgba(255,255,255,.15); }
+  .practice-area textarea { width:100%; height:220px; border:2px solid #e0d9ff; border-radius:12px; padding:16px; font-size:.92rem; resize:vertical; outline:none; font-family:inherit; line-height:1.85; transition:border-color .2s; }
+  .practice-area textarea:focus { border-color:var(--primary); }
+  .practice-toolbar { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; align-items:center; }
+  .p-btn { padding:8px 18px; border-radius:10px; border:none; font-size:.85rem; font-weight:600; cursor:pointer; transition:all .2s; }
+  .p-btn-primary   { background:var(--primary); color:white; }
+  .p-btn-primary:hover { background:#5a52d5; }
+  .p-btn-secondary { background:#f0ecff; color:var(--primary); }
+  .p-btn-secondary:hover { background:#e0d9ff; }
+  .word-count { margin-left:auto; font-size:.85rem; color:var(--text-light); }
+  .feedback-box { background:linear-gradient(135deg,#f0ecff,#fff); border:2px solid #d0c8ff; border-radius:14px; padding:20px; margin-top:16px; display:none; }
+  .feedback-scores { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:12px; margin-bottom:16px; }
+  .score-card { text-align:center; padding:12px; border-radius:12px; background:white; box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  .score-card .sc-label { font-size:.78rem; color:var(--text-light); margin-bottom:6px; }
+  .score-card .sc-val   { font-size:1.5rem; font-weight:700; color:var(--primary); }
+  .score-card .sc-star  { color:var(--accent2); font-size:.9rem; }
+  .suggestion-item { display:flex; gap:10px; padding:10px 14px; border-radius:10px; background:white; margin-bottom:8px; font-size:.85rem; border-left:4px solid var(--primary-light); }
+
+  /* ── 荣誉墙 ── */
+  .badge-wall { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:12px; }
+  .badge-item { text-align:center; padding:14px 8px; border-radius:14px; background:white; box-shadow:0 2px 10px rgba(0,0,0,.06); transition:all .2s; }
+  .badge-item.locked { opacity:.3; filter:grayscale(1); }
+  .badge-item:not(.locked):hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(108,99,255,.15); }
+  .badge-icon { font-size:2rem; margin-bottom:6px; }
+  .badge-name { font-size:.75rem; font-weight:700; color:var(--primary); }
+  .badge-cond { font-size:.68rem; color:var(--text-light); margin-top:2px; }
+
+  /* Toast */
+  #toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(80px); background:#2d3436; color:white; padding:12px 24px; border-radius:12px; font-size:.88rem; font-weight:600; z-index:9999; transition:transform .3s,opacity .3s; opacity:0; pointer-events:none; }
+  #toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+
+  /* 星星 */
+  .star-particle { position:fixed; pointer-events:none; z-index:9998; font-size:1.2rem; animation:floatUp 1.2s ease forwards; }
+  @keyframes floatUp { 0%{opacity:1;transform:translateY(0) scale(1);} 100%{opacity:0;transform:translateY(-80px) scale(.5);} }
+
+  /* 登录界面样式 */
+  .login-modal {
+    position:fixed; top:0; left:0; right:0; bottom:0;
+    background:linear-gradient(135deg,rgba(108,99,255,0.95),rgba(253,121,168,0.95));
+    display:flex; align-items:center; justify-content:center; z-index:9999;
+  }
+  .login-box {
+    background:white; border-radius:20px; padding:30px; width:90%; max-width:380px;
+    box-shadow:0 10px 40px rgba(0,0,0,0.3); text-align:center;
+  }
+  .login-box h2 { font-size:1.4rem; color:var(--primary); margin-bottom:8px; }
+  .login-box p { font-size:.85rem; color:#636e72; margin-bottom:20px; }
+  .login-tabs { display:flex; gap:10px; margin-bottom:20px; justify-content:center; }
+  .login-tab {
+    padding:8px 24px; border-radius:20px; border:2px solid #e0d9ff;
+    background:white; color:var(--primary); font-size:.9rem; font-weight:700; cursor:pointer;
+  }
+  .login-tab.active { background:var(--primary); color:white; border-color:var(--primary); }
+  .login-form input {
+    width:100%; margin-bottom:12px; padding:12px 16px; border:2px solid #e0d9ff;
+    border-radius:10px; font-size:.95rem; outline:none; box-sizing:border-box;
+  }
+  .login-form input:focus { border-color:var(--primary); }
+  .login-btn {
+    width:100%; padding:12px; border:none; border-radius:10px;
+    background:linear-gradient(135deg,var(--primary),var(--secondary));
+    color:white; font-size:1rem; font-weight:700; cursor:pointer; margin-bottom:10px;
+  }
+  .skip-btn { background:none; border:none; color:#b2bec3; cursor:pointer; font-size:.85rem; }
+  .skip-btn:hover { color:var(--primary); }
+  .sync-btn {
+    position:absolute; top:20px; right:20px; padding:6px 16px;
+    border-radius:20px; border:none; background:rgba(255,255,255,0.3);
+    color:white; font-size:.85rem; font-weight:700; cursor:pointer;
+  }
+  .sync-menu {
+    position:fixed; top:60px; right:20px; background:white; border-radius:12px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.2); padding:10px; z-index:1000;
+    display:none; min-width:140px;
+  }
+  .sync-menu button {
+    width:100%; padding:8px 16px; border:none; background:none; text-align:left;
+    font-size:.88rem; cursor:pointer; border-radius:6px; color:var(--text);
+  }
+  .sync-menu button:hover { background:#f0ecff; }
+</style>
+</head>
+<body>
+
+<!-- 登录界面 -->
+<div id="loginModal" class="login-modal" style="display:none;">
+  <div class="login-box">
+    <h2>🌟 欢迎使用作文助手</h2>
+    <p>登录后可以在多个设备上同步你的积分和好词好句</p>
+
+    <div class="login-tabs">
+      <button class="login-tab active" onclick="switchLoginTab('login')">登录</button>
+      <button class="login-tab" onclick="switchLoginTab('register')">注册</button>
+    </div>
+
+    <!-- 登录表单 -->
+    <div id="loginForm" class="login-form">
+      <input type="text" id="loginUser" placeholder="用户名">
+      <input type="password" id="loginPass" placeholder="密码">
+      <button class="login-btn" onclick="handleLogin()">登录</button>
+      <button class="skip-btn" onclick="skipLogin()">暂时不登录，先看看</button>
+    </div>
+
+    <!-- 注册表单 -->
+    <div id="registerForm" class="login-form" style="display:none;">
+      <input type="text" id="regUser" placeholder="设置用户名">
+      <input type="password" id="regPass" placeholder="设置密码">
+      <input type="password" id="regPass2" placeholder="确认密码">
+      <button class="login-btn" onclick="handleRegister()">注册</button>
+      <button class="skip-btn" onclick="skipLogin()">暂时不登录，先看看</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <h1 id="appTitle">✍️ 李欣阳的作文助手</h1>
+  <p>好词好句 · 写作框架 · 句子升级 · 范文拆解 · 写作练习</p>
+  <button id="syncBtn" class="sync-btn" onclick="showSyncMenu()" style="display:none;">☁️ 同步</button>
+</header>
+
+<!-- 积分条 -->
+<div class="score-bar">
+  <div class="score-item">✨ 总积分 <span class="score-num" id="totalScore">0</span></div>
+  <div class="score-item">📝 练习次数 <span class="score-num" id="practiceCount">0</span></div>
+  <div class="score-item">🔥 连续天数 <span class="score-num" id="streakDays">0</span></div>
+  <div class="level-badge" id="levelBadge">✏️ 写作新手</div>
+</div>
+
+<!-- 导航：onclick 传入 this，解决 event 对象问题 -->
+<nav>
+  <button class="nav-btn active" onclick="switchModule('vocab',this)">📚 好词好句</button>
+  <button class="nav-btn" onclick="switchModule('guide',this)">🧭 作文引导</button>
+  <button class="nav-btn" onclick="switchModule('upgrade',this)">⬆️ 句子升级</button>
+  <button class="nav-btn" onclick="switchModule('essay',this)">🔍 范文拆解</button>
+  <button class="nav-btn" onclick="switchModule('practice',this)">✏️ 写作练习</button>
+  <button class="nav-btn" onclick="switchModule('badges',this)">🏆 荣誉墙</button>
+  <button class="nav-btn" id="loginBtn" onclick="showLoginModal()">🔐 登录</button>
+  <button class="nav-btn" id="userActions" style="display:none;">
+    <span id="welcomeUser">用户</span>
+  </button>
+</nav>
+
+<main>
+
+<!-- 模块1：好词好句 -->
+<div class="module active" id="mod-vocab">
+  <!-- 内置词库 -->
+  <div class="card">
+    <div class="card-title">📚 好词好句库 — 点击即可复制</div>
+    <div class="vtab-row" id="vocabTabs"></div>
+  </div>
+  <div id="vocabContent"></div>
+
+  <!-- 我的好词好句 -->
+  <div class="card">
+    <div class="card-title">
+      ✨ 我的好词好句
+      <span style="font-size:.78rem;color:#00b894;font-weight:600;margin-left:8px">每添加一条 +5 积分</span>
+    </div>
+    <p style="font-size:.85rem;color:var(--text-light);margin-bottom:14px">把你在书里、课文里发现的好词好句记下来吧！</p>
+
+    <!-- 添加词语 -->
+    <div style="margin-bottom:10px;font-size:.88rem;font-weight:700;color:var(--primary)">➕ 添加好词</div>
+    <div class="my-vocab-add" id="addWordRow">
+      <select id="newWordCat" style="border:2px solid #e0d9ff;border-radius:10px;padding:8px 12px;font-size:.88rem;outline:none;font-family:inherit;background:white">
+        <option value="">选择分类</option>
+      </select>
+      <input id="newWord" placeholder="好词（如：流连忘返）" maxlength="20">
+      <textarea id="newWordEg" placeholder="造句或例句（可选）" maxlength="80"></textarea>
+      <button class="add-btn" onclick="addMyWord()">收藏这个词 ＋5分</button>
+    </div>
+
+    <!-- 添加句子 -->
+    <div style="margin:14px 0 10px;font-size:.88rem;font-weight:700;color:var(--primary)">➕ 添加好句</div>
+    <div class="my-vocab-add" id="addSentRow">
+      <select id="newSentCat" style="border:2px solid #e0d9ff;border-radius:10px;padding:8px 12px;font-size:.88rem;outline:none;font-family:inherit;background:white;flex:0.5;min-width:90px">
+        <option value="">选择分类</option>
+      </select>
+      <input id="newSentType" placeholder="类型（如：比喻）" maxlength="8" style="flex:0.5;min-width:80px">
+      <textarea id="newSent" placeholder="把好句子写在这里……" maxlength="120" style="height:48px;flex:2"></textarea>
+      <button class="add-btn" onclick="addMySentence()">收藏这个句 ＋5分</button>
+    </div>
+
+    <!-- 我的收藏列表 -->
+    <div id="myVocabList" style="margin-top:16px"></div>
+  </div>
+</div>
+
+<!-- 模块2：作文引导 -->
+<div class="module" id="mod-guide">
+  <div class="card">
+    <div class="card-title">🧭 选择作文类型</div>
+    <div class="guide-types" id="guideTypes"></div>
+  </div>
+  <div class="card" id="topicCard" style="display:none">
+    <div class="card-title">📌 选一个题目</div>
+    <div class="topic-grid" id="topicGrid"></div>
+    <button class="upgrade-btn" onclick="generateFramework()">生成写作框架 →</button>
+  </div>
+  <div id="guide-result" style="display:none">
+    <div class="card">
+      <div class="card-title">📋 写作框架</div>
+      <div class="framework-box" id="frameworkBox"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 模块3：句子升级 -->
+<div class="module" id="mod-upgrade">
+  <div class="card">
+    <div class="card-title">⬆️ 句子升级器 — 让普通句子变生动</div>
+    <div class="upgrade-container">
+      <div class="upgrade-input-area">
+        <div style="font-size:.85rem;color:var(--text-light);margin-bottom:8px">输入一个普通句子：</div>
+        <textarea id="ugInput" placeholder="例如：今天天气很好。&#10;例如：妈妈做的饭很好吃。&#10;例如：我很高兴。"></textarea>
+        <button class="upgrade-btn" onclick="upgradeSentence()">✨ 升级这个句子</button>
+      </div>
+      <div class="upgrade-result-area" id="ugResult">
+        <div class="placeholder">← 输入句子后点击升级<br>看看如何让它更生动！</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">💡 经典升级示例 — 点击把原句填入框</div>
+    <div id="exampleSentences"></div>
+  </div>
+</div>
+
+<!-- 模块4：范文拆解 -->
+<div class="module" id="mod-essay">
+  <div class="card">
+    <div class="card-title">🔍 范文拆解 — 学习优秀作文的秘密</div>
+    <div class="essay-tabs" id="essayTabs"></div>
+  </div>
+  <div id="essayContent"></div>
+</div>
+
+<!-- 模块5：写作练习 -->
+<div class="module" id="mod-practice">
+  <div class="topic-of-day">
+    <div class="tod-label">📅 今日练习题目</div>
+    <div class="tod-topic" id="todTopic">加载中...</div>
+    <div class="tod-hint"  id="todHint"></div>
+    <button class="tod-change" onclick="changeTopic()">换一个题目 🔄</button>
+  </div>
+  <div class="card">
+    <div class="card-title">✏️ 开始写作</div>
+    <div class="practice-area">
+      <textarea id="practiceText" placeholder="在这里写下你的作文..." oninput="updateWordCount()"></textarea>
+      <div class="practice-toolbar">
+        <button class="p-btn p-btn-primary" onclick="submitPractice()">📤 提交批改</button>
+        <button class="p-btn p-btn-secondary" onclick="clearPractice()">🗑️ 清空</button>
+        <button class="p-btn p-btn-secondary" onclick="switchModule('vocab',null)">📚 查好词好句</button>
+        <span class="word-count" id="wordCount">已写 0 字</span>
+      </div>
+    </div>
+    <div class="feedback-box" id="feedbackBox">
+      <div class="card-title" style="margin-bottom:12px">📊 智能批改反馈</div>
+      <div class="feedback-scores" id="feedbackScores"></div>
+      <div id="feedbackSuggestions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 模块6：荣誉墙 -->
+<div class="module" id="mod-badges">
+  <div class="card">
+    <div class="card-title">🏆 我的荣誉墙</div>
+    <div style="font-size:.88rem;color:var(--text-light);margin-bottom:16px" id="badgeSummary"></div>
+    <div class="badge-wall" id="badgeWall"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📈 写作等级路线</div>
+    <div id="levelRoad"></div>
+  </div>
+</div>
+
+</main>
+<div id="toast"></div>
+
+<!-- 加载独立词库文件 -->
+<script src="vocab-data.js"></script>
+<script src="cloud-api.js"></script>
+
+<script>
+// ══════════════════════════════════════════
+//  数据层（词库已提取到 vocab-data.js）
+// ══════════════════════════════════════════
+
+// ══════════════════════════════════════════
+//  登录和云同步功能
+// ══════════════════════════════════════════
+
+// 页面加载时检查登录状态
+window.onload = function() {
+  // 检查是否已经登录
+  if (isLoggedIn()) {
+    document.getElementById('loginModal').style.display = 'none';
+    document.getElementById('syncBtn').style.display = 'block';
+  } else {
+    // 如果没有登录，检查是否有本地数据
+    const hasLocalData = localStorage.getItem(STORE_KEY);
+    if (!hasLocalData) {
+      // 首次访问，显示登录界面
+      document.getElementById('loginModal').style.display = 'flex';
+    }
+  }
+
+  updateLoginButton();
+
+  // 原有的初始化
+  loadState();
+  updateScoreBar();
+  initVocab();
+  initGuide();
+  initUpgrade();
+  initEssay();
+  initPractice();
+  initCategorySelects();
+  renderMyVocab();
+};
+
+// 切换登录/注册标签
+function switchLoginTab(type) {
+  const loginForm = document.getElementById('loginForm');
+  const regForm = document.getElementById('registerForm');
+  const tabs = document.querySelectorAll('.login-tab');
+
+  tabs.forEach(t => t.classList.remove('active'));
+  if (type === 'login') {
+    tabs[0].classList.add('active');
+    loginForm.style.display = 'block';
+    regForm.style.display = 'none';
+  } else {
+    tabs[1].classList.add('active');
+    loginForm.style.display = 'none';
+    regForm.style.display = 'block';
+  }
+}
+
+// 处理登录
+async function handleLogin() {
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value.trim();
+
+  if (!username || !password) {
+    showToast('请输入用户名和密码');
+    return;
+  }
+
+  try {
+    await cloudLogin(username, password);
+    document.getElementById('loginModal').style.display = 'none';
+    document.getElementById('syncBtn').style.display = 'block';
+    updateLoginButton();
+    showToast('✅ 登录成功！');
+
+    // 从云端同步数据
+    const result = await syncFromCloud();
+    if (result.success) {
+      showToast('✅ ' + result.message + '，积分和好词好句已同步');
+    }
+  } catch (error) {
+    showToast('❌ ' + error.message);
+  }
+}
+
+// 处理注册
+async function handleRegister() {
+  const username = document.getElementById('regUser').value.trim();
+  const password = document.getElementById('regPass').value.trim();
+  const password2 = document.getElementById('regPass2').value.trim();
+
+  if (!username || !password) {
+    showToast('请输入用户名和密码');
+    return;
+  }
+
+  if (password !== password2) {
+    showToast('两次密码不一致');
+    return;
+  }
+
+  if (password.length < 4) {
+    showToast('密码至少4位');
+    return;
+  }
+
+  try {
+    await cloudRegister(username, password);
+    document.getElementById('loginModal').style.display = 'none';
+    document.getElementById('syncBtn').style.display = 'block';
+    updateLoginButton();
+    showToast('✅ 注册成功！欢迎加入！');
+  } catch (error) {
+    showToast('❌ ' + error.message);
+  }
+}
+
+// 跳过登录
+function skipLogin() {
+  document.getElementById('loginModal').style.display = 'none';
+  showToast('您可以先体验功能，稍后在右上角登录同步数据');
+}
+
+// 显示登录界面
+function showLoginModal() {
+  document.getElementById('loginModal').style.display = 'flex';
+}
+
+// 更新登录按钮状态
+function updateLoginButton() {
+  const loginBtn = document.getElementById('loginBtn');
+  const userActions = document.getElementById('userActions');
+  const welcomeUser = document.getElementById('welcomeUser');
+
+  if (isLoggedIn()) {
+    loginBtn.style.display = 'none';
+    userActions.style.display = 'block';
+    welcomeUser.textContent = localStorage.getItem('username') || '用户';
+  } else {
+    loginBtn.style.display = 'block';
+    userActions.style.display = 'none';
+  }
+
+  updateAppTitle();
+}
+
+// 更新应用标题
+function updateAppTitle() {
+  const appTitle = document.getElementById('appTitle');
+  const pageTitle = document.getElementById('pageTitle');
+
+  if (isLoggedIn()) {
+    const username = localStorage.getItem('username') || '小朋友';
+    const titleText = `${username}的作文助手`;
+    appTitle.textContent = '✍️ ' + titleText;
+    pageTitle.textContent = titleText + ' ✍️';
+  } else {
+    appTitle.textContent = '✍️ 小朋友的作文助手';
+    pageTitle.textContent = '小朋友的作文助手 ✍️';
+  }
+}
+
+
+
+
+// 显示同步菜单
+function showSyncMenu() {
+  const menu = document.getElementById('syncMenu');
+  if (!menu) {
+    // 创建菜单
+    const menuEl = document.createElement('div');
+    menuEl.id = 'syncMenu';
+    menuEl.className = 'sync-menu';
+    menuEl.innerHTML = `
+      <button onclick="syncToCloudNow()">☁️ 上传到云端</button>
+      <button onclick="syncFromCloudNow()">☁️ 从云端下载</button>
+      <button onclick="cloudLogoutNow()">🚪 退出登录</button>
+    `;
+    document.body.appendChild(menuEl);
+  }
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+// 上传到云端
+async function syncToCloudNow() {
+  document.getElementById('syncMenu').style.display = 'none';
+  showToast('正在上传...', 1000);
+
+  const result = await syncToCloud();
+  if (result.success) {
+    showToast('✅ ' + result.message);
+  } else {
+    showToast('❌ ' + result.message);
+  }
+}
+
+// 从云端下载
+async function syncFromCloudNow() {
+  document.getElementById('syncMenu').style.display = 'none';
+  showToast('正在下载...', 1000);
+
+  const result = await syncFromCloud();
+  if (result.success) {
+    showToast('✅ ' + result.message);
+    renderMyVocab();
+  } else {
+    showToast('❌ ' + result.message);
+  }
+}
+
+// 退出登录
+function cloudLogoutNow() {
+  document.getElementById('syncMenu').style.display = 'none';
+  if (confirm('确定要退出登录吗？退出后数据将只保存在本地。')) {
+    cloudLogout();
+    document.getElementById('syncBtn').style.display = 'none';
+    updateLoginButton();
+    showToast('👋 已退出登录');
+  }
+}
+
+
+// 修改原有的保存函数，添加自动同步
+const originalSaveState = saveState;
+saveState = function() {
+  originalSaveState();
+
+  // 如果已登录，自动同步到云端（防抖，避免频繁请求）
+  if (isLoggedIn()) {
+    if (window.syncTimeout) clearTimeout(window.syncTimeout);
+    window.syncTimeout = setTimeout(() => {
+      syncToCloud();
+    }, 3000); // 3秒后自动同步
+  }
+};
+
+const GUIDE_DATA = {
+  "写人":{
+    topics:["我的老师","难忘的朋友","我最佩服的人","我的爸爸/妈妈","一位令我感动的陌生人","我的同桌"],
+    framework:[
+      {title:"开头：引人入胜",desc:"用一个印象最深的场景或细节开头，让读者立刻对这个人产生兴趣。",tips:["直接描写人物外貌或动作","用一句话点明人物特点","设置悬念"]},
+      {title:"外貌描写",desc:"抓住最有特点的1-2处外貌，要与人物性格相符合。",tips:["眼睛是心灵的窗户","不要面面俱到","外貌要衬托性格"]},
+      {title:"事例1：典型事件（详写）",desc:"选择最能体现人物品质的一件事，详细描写动作、语言、神态。",tips:["动作要具体","语言要生动","心理活动要真实"]},
+      {title:"事例2：辅助事件（略写）",desc:"再举一两个简短例子，证明这种品质不是偶然的。",tips:["一两句话概括","与详写事例互补","体现一贯性"]},
+      {title:"结尾：抒情升华",desc:"表达对这个人的感情，或写出他/她对你的影响和启发。",tips:["直接抒情","写出受到的影响","首尾呼应"]}
+    ]
+  },
+  "写景":{
+    topics:["我的家乡","美丽的公园","难忘的旅行","校园的四季","家乡的河","美丽的田野"],
+    framework:[
+      {title:"开头：整体印象",desc:"用一两句话描述对这处景色的总体感受，点明地点和时间。",tips:["概括特点","点明时间季节","引起读者兴趣"]},
+      {title:"远景→近景",desc:"先写整体轮廓，再逐步细化，引导读者视线由远及近。",tips:["移步换景","固定视角","由整体到局部"]},
+      {title:"感官多角度",desc:"不只写眼睛看到的，还要写耳朵听到的、鼻子闻到的。",tips:["视觉/听觉/嗅觉","触觉/味觉","动态与静态"]},
+      {title:"重点景物细描",desc:"选1-2处最有特色的景物，用比喻、拟人等手法生动描写。",tips:["至少用一种修辞","写出独特之处","融入情感"]},
+      {title:"结尾：情景交融",desc:"景中含情，说明这处景色对你的意义，或表达热爱之情。",tips:["借景抒情","首尾呼应","点明中心"]}
+    ]
+  },
+  "写事":{
+    topics:["第一次做饭","一次难忘的比赛","我帮助了别人","一次意外的收获","印象最深的一次课","一件后悔的事"],
+    framework:[
+      {title:"开头：交代背景",desc:"交代事情发生的时间、地点、起因，简洁引出主要事件。",tips:["时间地点人物","六要素不遗漏","简洁有力"]},
+      {title:"事情起因",desc:"写清楚事情是怎么开始的，为后面的发展做好铺垫。",tips:["原因要合理","自然引出经过","交代清楚"]},
+      {title:"高潮（重点详写）",desc:"全文最精彩的部分，详细写动作、语言、心理变化。",tips:["多写动作细节","心理描写要真实","语言描写要生动"]},
+      {title:"结果",desc:"写出事情的结果，可以是喜悦、遗憾，也可以是意外。",tips:["结果要真实","与高潮呼应","不要虎头蛇尾"]},
+      {title:"结尾：感悟",desc:"写出这件事给你的启发或感受，点明文章主题。",tips:["感悟要真实","不要说教","简洁有力"]}
+    ]
+  },
+  "状物":{
+    topics:["我喜欢的一种植物","可爱的小动物","我的文具","家乡的特产","一件珍贵的礼物","我最喜欢的玩具"],
+    framework:[
+      {title:"开头：引出所写之物",desc:"用一两句话介绍这个事物，说明为什么要写它。",tips:["总体印象","喜爱之情","设置悬念"]},
+      {title:"外形描写",desc:"从颜色、形状、大小等角度描写事物的外形特征。",tips:["有序描写","抓住特点","运用比喻"]},
+      {title:"特点/用途/习性",desc:"写这个事物最有趣、最特别的地方。",tips:["突出与众不同","有趣的细节","结合亲身观察"]},
+      {title:"与我的故事",desc:"写一个关于这个事物的小故事，说明它对你的意义。",tips:["一件小事","情感联结","让文章有温度"]},
+      {title:"结尾：感情升华",desc:"表达对这个事物的喜爱，或写出它给你的启发。",tips:["真情流露","含蓄或直接皆可","首尾呼应"]}
+    ]
+  }
+};
+
+const UPGRADE_EXAMPLES = [
+  {before:"今天天气很好。",after:[
+    {tech:"比喻",s:"今天的阳光像金色的绸缎，轻轻铺满了整条街道。"},
+    {tech:"感官",s:"今天天空湛蓝如宝石，一缕缕暖风轻抚着脸颊，让人心情格外舒畅。"},
+  ]},
+  {before:"妈妈做的饭很好吃。",after:[
+    {tech:"细节",s:"锅里飘出的香气把我的馋虫都钩出来了，筷子还没夹到嘴里，口水就已经咽了三回。"},
+    {tech:"比喻",s:"妈妈做的红烧肉，肥而不腻，软糯香甜，每一口都像是一个温暖的拥抱。"},
+  ]},
+  {before:"我很高兴。",after:[
+    {tech:"动作写情",s:"我忍不住在原地跳了起来，嘴角咧到了耳朵边，心里像开了一朵大花。"},
+    {tech:"景物衬情",s:"走在回家的路上，感觉连路边的花都开得格外艳丽，风也比平时轻柔许多。"},
+  ]},
+  {before:"小狗很可爱。",after:[
+    {tech:"细节描写",s:"小狗迈着碎步跑过来，摇着它那根小尾巴，两只黑豆般的眼睛闪闪发亮，让人怎么看怎么喜欢。"},
+    {tech:"拟人",s:"小狗像个热情的小主人，看到我回来就欢天喜地地奔过来，绕着我的脚踝转了好几圈。"},
+  ]},
+  {before:"同学帮助了我。",after:[
+    {tech:"具体化",s:"正当我急得团团转的时候，小华二话没说，把自己的橡皮和草稿纸都递了过来，还悄声说：'别慌，我们一起想'。"},
+    {tech:"心理+动作",s:"他把那道题一步一步讲给我听，我看着他认真的眼神，心里涌起一股暖意。"},
+  ]},
+  {before:"老师很严格。",after:[
+    {tech:"对比",s:"老师平时声音不大，但只要她往讲台前一站，整个教室立刻安静下来，连空气都好像凝固了。"},
+    {tech:"事例",s:"那次我作业写得潦草，老师把本子退回来，只在旁边写了四个字：『再来一遍』。我懂了，她是认真的。"},
+  ]},
+];
+
+const UPGRADE_RULES = [
+  {keys:["高兴","开心","快乐","兴奋"],tips:[
+    {tech:"动作写情",s:"我高兴得跳了起来，嘴角咧到耳朵边，整颗心都像在天上飘着。"},
+    {tech:"比喻",s:"那一刻，心里像绽放了一束烟花，噼里啪啦全是光。"},
+  ]},
+  {keys:["难过","伤心","悲伤","哭"],tips:[
+    {tech:"间接描写",s:"我低下头，用力咬住嘴唇，不让眼眶里的泪水掉下来。"},
+    {tech:"景物衬托",s:"那天连天空都阴沉沉的，风吹过来带着凉意，好像也在为我叹气。"},
+  ]},
+  {keys:["紧张","害怕","担心","忐忑"],tips:[
+    {tech:"身体反应",s:"我的心跳得越来越快，手心里渗出了细密的汗珠，脑子里一片空白。"},
+    {tech:"动作细节",s:"我不停地深呼吸，手指无意识地抓紧了裤子，眼神不断飘向那个方向。"},
+  ]},
+  {keys:["漂亮","好看","美丽","美"],tips:[
+    {tech:"比喻具体化",s:"她的笑容像三月里盛开的樱花，明媚、纯净，让人一见就心情大好。"},
+    {tech:"细节勾勒",s:"阳光打在她脸上，映出淡淡的光晕，眼睛弯成了两道温柔的弧线。"},
+  ]},
+  {keys:["好吃","美味","香"],tips:[
+    {tech:"多感官",s:"还没走近，香气就先钻进了鼻子，锅里咕嘟咕嘟地冒着泡，那颜色、那香味，叫人怎么忍得住？"},
+    {tech:"夸张",s:"这碗面好吃到我恨不得把碗底也舔干净，连最后一滴汤都不愿意浪费。"},
+  ]},
+  {keys:["大","很大","宽广","广阔"],tips:[
+    {tech:"对比",s:"站在山顶，眼前的平原一望无际，远处的城市小得像积木，让我感到自己无比渺小。"},
+    {tech:"衬托",s:"操场大得让人站在这头望不见那头，几十个同学在里面活动，也显得稀稀落落。"},
+  ]},
+];
+
+const ESSAY_DATA = [
+  {title:"写景·开头",paras:[{
+    text:`家乡有一条小河，<span class="hl-green">弯弯曲曲地从村子中间流过</span>，像一条<span class="hl-blue">碧绿的玉带</span>，把整个村庄装扮得格外美丽。<span class="hl-orange">清晨，薄薄的雾气笼罩着河面，阳光透过雾气照下来，把水面染成了金色。</span>河边的柳树<span class="hl-pink">舞动着长长的发丝</span>，倒映在水中，美不胜收。`,
+    annos:[
+      {color:"green", key:"弯弯曲曲……流过",   text:"动态描写，写出河流的形态"},
+      {color:"blue",  key:"碧绿的玉带",        text:"比喻修辞，形象贴切，色彩鲜明"},
+      {color:"orange",key:"清晨……染成了金色",  text:"时间+视觉，光影变化描写精准"},
+      {color:"pink",  key:"舞动着长长的发丝",  text:"拟人修辞，赋予柳树生命"},
+    ],
+    skills:["比喻","拟人","视觉描写","动静结合"]
+  }]},
+  {title:"写人·神态动作",paras:[{
+    text:`李老师是我最喜欢的语文老师。<span class="hl-green">她不高，圆圆的脸上总是挂着和蔼的笑容。</span>讲课的时候，<span class="hl-blue">她的眼睛会随着情节变化而变化</span>——讲到有趣的地方，眼睛弯成了月牙；<span class="hl-orange">讲到感人的段落，声音也不由自主地轻了下来，</span>整个教室静得只剩下她那温柔的声音。<span class="hl-pink">有一次我上课走神，她轻轻走到我桌边，没有批评，只是用手指轻轻敲了敲我的课本。</span>那一声敲，胜过了千言万语。`,
+    annos:[
+      {color:"green", key:"圆圆的脸上……笑容",    text:"外貌特征突出，与性格相符"},
+      {color:"blue",  key:"眼睛会随着情节变化",   text:"通过眼神变化展现人物投入"},
+      {color:"orange",key:"声音轻了下来",         text:"细节描写，声音与情绪联动"},
+      {color:"pink",  key:"轻轻敲了敲我的课本",   text:"用动作代替语言，更有感染力"},
+    ],
+    skills:["外貌描写","细节描写","动作传情","侧面烘托"]
+  }]},
+  {title:"写事·高潮",paras:[{
+    text:`跑道上，我咬紧牙关，<span class="hl-green">两腿像灌了铅一样沉，每迈出一步都要用尽全力。</span>耳边是同学们的加油声，<span class="hl-blue">那声音像浪潮一样一浪一浪地涌来，把我快要熄灭的斗志重新点燃。</span><span class="hl-orange">"快了，就快到终点了！"我在心里一遍遍告诉自己。</span>终于，我感到胸前那根彩带"嗖"的一声绷断了——<span class="hl-pink">我冲过了终点线！</span>`,
+    annos:[
+      {color:"green", key:"两腿像灌了铅",        text:"比喻写疲劳感，真实有力"},
+      {color:"blue",  key:"像浪潮一样……点燃",   text:"比喻+通感，展现呐喊的力量"},
+      {color:"orange",key:"心里一遍遍告诉自己",  text:"心理描写，展现坚持的意志"},
+      {color:"pink",  key:"彩带绷断……冲过终点", text:"动作+声音，高潮处戛然而止"},
+    ],
+    skills:["身体感受","心理描写","比喻","细节冲刺"]
+  }]},
+  {title:"状物·细描",paras:[{
+    text:`我家阳台上养了一盆多肉植物，<span class="hl-green">叶片肥厚饱满，像一颗颗圆滚滚的绿色雨滴，</span>整齐地围成一个玫瑰花的形状。<span class="hl-blue">阳光照上去，叶片的边缘透出一圈淡淡的粉红色，</span>像是精心涂上去的腮红。<span class="hl-orange">轻轻用手指碰一下，滑滑的、凉凉的，里面好像蓄满了水。</span><span class="hl-pink">我有时候觉得它像一个安静的小孩，不言不语，却用自己的方式告诉你：认真活着，就已经很美了。</span>`,
+    annos:[
+      {color:"green", key:"圆滚滚的绿色雨滴",    text:"比喻形象，写出叶片质感"},
+      {color:"blue",  key:"淡淡的粉红色……腮红", text:"光影+比喻，细节观察精准"},
+      {color:"orange",key:"滑滑的……蓄满了水",   text:"触觉描写，让读者身临其境"},
+      {color:"pink",  key:"像一个安静的小孩",    text:"由物及人，点出文章主旨"},
+    ],
+    skills:["比喻","触觉描写","光影观察","借物喻人"]
+  }]},
+];
+
+const PRACTICE_TOPICS = [
+  {topic:"一件让我难忘的事",  hint:"想想什么事让你印象特别深，为什么难忘？可以是开心的，也可以是遗憾的。"},
+  {topic:"我最喜欢的季节",    hint:"选一个你最喜欢的季节，用感官多角度描写，说出为什么喜欢。"},
+  {topic:"我的好朋友",        hint:"用外貌+典型事例，写出朋友最让你难忘的特点。"},
+  {topic:"一次有意思的课外活动",hint:"写清楚活动的过程，重点写最精彩的部分，表达你的感受。"},
+  {topic:"我的家乡",          hint:"抓住家乡最有特色的景物或风俗，表达对家乡的热爱。"},
+  {topic:"第一次独立做一件事", hint:"第一次做饭、洗碗、购物……写出过程中的紧张与成就感。"},
+  {topic:"让我感动的一件小事", hint:"有时候一个眼神、一句话、一个动作就能让人感动，写出来吧。"},
+  {topic:"如果我是……",       hint:"发挥想象，如果你是一棵树、一朵云、一条鱼，你会经历什么？"},
+];
+
+const BADGE_DATA = [
+  {icon:"✏️",name:"写作起步",   cond:"完成第1次练习",  req:1,   type:"practice"},
+  {icon:"📝",name:"勤奋小作家", cond:"完成5次练习",    req:5,   type:"practice"},
+  {icon:"📖",name:"阅读达人",   cond:"查看10次范文",   req:10,  type:"essay"},
+  {icon:"⭐",name:"好词收集者", cond:"复制50条好词句", req:50,  type:"vocab"},
+  {icon:"🌿",name:"词汇小达人", cond:"自添好词5条",    req:5,   type:"myVocab"},
+  {icon:"🔥",name:"升级专家",   cond:"使用20次句子升级",req:20, type:"upgrade"},
+  {icon:"🌟",name:"框架大师",   cond:"使用10次作文引导",req:10, type:"guide"},
+  {icon:"🏅",name:"积分达人",   cond:"总积分达到100",  req:100, type:"score"},
+  {icon:"🎖️",name:"坚持不懈",  cond:"总积分达到300",  req:300, type:"score"},
+  {icon:"🏆",name:"作文高手",   cond:"总积分达到500",  req:500, type:"score"},
+];
+
+const LEVELS = [
+  {min:0,   label:"✏️ 写作新手"},
+  {min:50,  label:"📝 初级作家"},
+  {min:150, label:"📖 文字达人"},
+  {min:300, label:"🌟 优秀写手"},
+  {min:500, label:"🏆 作文高手"},
+];
+
+// ══════════════════════════════════════════
+//  本地存储
+// ══════════════════════════════════════════
+const STORE_KEY = "lxyEssayHelper";
+let state = {
+  totalScore:0, streakDays:0, lastDate:"",
+  counters:{practice:0,essay:0,vocab:0,upgrade:0,guide:0,myVocab:0},
+  unlockedBadges:[],
+  myWords:[],    // [{word, eg}]
+  mySentences:[] // [{type, s}]
+};
+
+function saveState(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+function loadState(){
+  const raw = localStorage.getItem(STORE_KEY);
+  if(raw){ try{ Object.assign(state, JSON.parse(raw)); }catch(e){} }
+  if(!state.myWords) state.myWords=[];
+  if(!state.mySentences) state.mySentences=[];
+  if(!state.counters.myVocab) state.counters.myVocab=0;
+  // 连续天数
+  const today = new Date().toLocaleDateString("zh-CN");
+  if(state.lastDate && state.lastDate !== today){
+    const diff = Math.round((new Date(today)-new Date(state.lastDate))/(86400000));
+    state.streakDays = diff===1 ? (state.streakDays||0)+1 : 1;
+  } else if(!state.lastDate){ state.streakDays=1; }
+  state.lastDate = today;
+  saveState();
+}
+
+function addScore(pts, type){
+  state.totalScore += pts;
+  if(type) state.counters[type] = (state.counters[type]||0)+1;
+  updateScoreBar(); checkBadges(); saveState(); spawnStars(pts);
+}
+
+function updateScoreBar(){
+  document.getElementById("totalScore").textContent    = state.totalScore;
+  document.getElementById("practiceCount").textContent = state.counters.practice||0;
+  document.getElementById("streakDays").textContent    = state.streakDays||0;
+  const lv = [...LEVELS].reverse().find(l=>state.totalScore>=l.min);
+  document.getElementById("levelBadge").textContent = lv.label;
+}
+
+function checkBadges(){
+  BADGE_DATA.forEach((b,i)=>{
+    if(state.unlockedBadges.includes(i)) return;
+    const val = b.type==="score" ? state.totalScore : (state.counters[b.type]||0);
+    if(val>=b.req){ state.unlockedBadges.push(i); showToast("🎉 解锁勋章："+b.name); }
+  });
+}
+
+// ══════════════════════════════════════════
+//  工具函数
+// ══════════════════════════════════════════
+
+// 修复：接收 btnEl 参数，不再依赖全局 event 对象
+function switchModule(name, btnEl){
+  document.querySelectorAll(".module").forEach(m=>m.classList.remove("active"));
+  document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
+  document.getElementById("mod-"+name).classList.add("active");
+  if(btnEl) btnEl.classList.add("active");
+  if(name==="badges") renderBadges();
+}
+
+function showToast(msg, dur=2500){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),dur);
+}
+
+function spawnStars(n){
+  const em=["⭐","✨","🌟","💫"];
+  for(let i=0;i<Math.min(n,6);i++){
+    const el=document.createElement("div");
+    el.className="star-particle";
+    el.textContent=em[Math.floor(Math.random()*em.length)];
+    el.style.left=(30+Math.random()*40)+"%";
+    el.style.top =(30+Math.random()*40)+"%";
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),1300);
+  }
+}
+
+function copyText(text){ navigator.clipboard.writeText(text).then(()=>showToast("✅ 已复制！")); }
+
+function escAttr(s){ return s.replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
+
+// ══════════════════════════════════════════
+//  模块1：好词好句库
+// ══════════════════════════════════════════
+function initVocab(){
+  const cats = Object.keys(VOCAB_DATA);
+  const tabsEl = document.getElementById("vocabTabs");
+  const contEl = document.getElementById("vocabContent");
+
+  cats.forEach((cat,i)=>{
+    // Tab 按钮
+    const btn = document.createElement("button");
+    btn.className = "vtab"+(i===0?" active":"");
+    btn.textContent = cat;
+    btn.onclick = ()=>switchVocabTab(cat);
+    tabsEl.appendChild(btn);
+
+    // Section
+    const sec = document.createElement("div");
+    sec.className = "vocab-section"+(i===0?" active":"");
+    sec.id = "vs-"+i;
+    
+    // 存储完整数据
+    sec.dataset.words = JSON.stringify(VOCAB_DATA[cat].words);
+    sec.dataset.sentences = JSON.stringify(VOCAB_DATA[cat].sentences);
+
+    // 首次渲染随机内容
+    renderVocabCategory(sec);
+
+    contEl.appendChild(sec);
+  });
+}
+
+// 渲染单个分类的内容（随机6个词+6个句）
+function renderVocabCategory(secEl){
+  const words = JSON.parse(secEl.dataset.words || "[]");
+  const sentences = JSON.parse(secEl.dataset.sentences || "[]");
+  
+  // 随机抽取6个词和6个句
+  const randomWords = shuffle(words).slice(0, 6);
+  const randomSentences = shuffle(sentences).slice(0, 6);
+
+  let html = `<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px"><div class="card-title" style="margin:0">💎 好词（点击复制）</div><button class="refresh-btn" onclick="refreshVocab(this, 'words')" style="padding:6px 12px;border-radius:8px;border:none;background:var(--primary-light);color:white;cursor:pointer;font-size:.78rem;font-weight:600">换一批 🔄</button></div><div class="vocab-grid">`;
+  randomWords.forEach(w=>{
+    html += `<div class="vocab-card" onclick="copyText('${escAttr(w.w)}');addScore(1,'vocab')">
+      <div class="vocab-word">${w.w}</div>
+      <div class="vocab-example">${w.eg}</div>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  html += `<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px"><div class="card-title" style="margin:0">✍️ 好句（点击复制）</div><button class="refresh-btn" onclick="refreshVocab(this, 'sentences')" style="padding:6px 12px;border-radius:8px;border:none;background:var(--primary-light);color:white;cursor:pointer;font-size:.78rem;font-weight:600">换一批 🔄</button></div><ul class="sentence-list">`;
+  randomSentences.forEach(s=>{
+    html += `<li onclick="copyText('${escAttr(s.s)}');addScore(2,'vocab')">
+      <span class="s-type">${s.type}</span>${s.s}</li>`;
+  });
+  html += `</ul></div>`;
+
+  secEl.innerHTML = html;
+}
+
+// 换一批功能
+function refreshVocab(btnEl, type){
+  const secEl = btnEl.closest(".vocab-section");
+  const words = JSON.parse(secEl.dataset.words || "[]");
+  const sentences = JSON.parse(secEl.dataset.sentences || "[]");
+  
+  const items = type === "words" ? words : sentences;
+  const randomItems = shuffle(items).slice(0, 6);
+  
+  let html = "";
+  if(type === "words"){
+    html = `<div class="vocab-grid">`;
+    randomItems.forEach(w=>{
+      html += `<div class="vocab-card" onclick="copyText('${escAttr(w.w)}');addScore(1,'vocab')">
+        <div class="vocab-word">${w.w}</div>
+        <div class="vocab-example">${w.eg}</div>
+      </div>`;
+    });
+    html += `</div>`;
+    // 更新好词部分
+    const card = btnEl.closest(".card");
+    const grid = card.querySelector(".vocab-grid");
+    grid.outerHTML = html;
+  } else {
+    html = ``;
+    randomItems.forEach(s=>{
+      html += `<li onclick="copyText('${escAttr(s.s)}');addScore(2,'vocab')">
+        <span class="s-type">${s.type}</span>${s.s}</li>`;
+    });
+    // 更新好句部分
+    const card = btnEl.closest(".card");
+    const list = card.querySelector(".sentence-list");
+    list.innerHTML = html;
+  }
+  showToast("✅ 已换一批！");
+}
+
+// Fisher-Yates 洗牌算法
+function shuffle(array){
+  const arr = [...array];
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+let currentVocabIdx = 0;
+function switchVocabTab(cat){
+  const cats = Object.keys(VOCAB_DATA);
+  const idx  = cats.indexOf(cat);
+  currentVocabIdx = idx;
+  document.querySelectorAll(".vtab").forEach((b,i)=>b.classList.toggle("active",i===idx));
+  document.querySelectorAll(".vocab-section").forEach((s,i)=>s.classList.toggle("active",i===idx));
+}
+
+// ── 我的好词好句 ──
+// 初始化分类下拉菜单
+function initCategorySelects(){
+  const cats = Object.keys(VOCAB_DATA);
+  const wordSelect = document.getElementById("newWordCat");
+  const sentSelect = document.getElementById("newSentCat");
+  
+  cats.forEach(cat => {
+    wordSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+    sentSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+  });
+}
+
+function addMyWord(){
+  const cat  = document.getElementById("newWordCat").value;
+  const word = document.getElementById("newWord").value.trim();
+  const eg   = document.getElementById("newWordEg").value.trim();
+  if(!word){ showToast("请输入好词！"); return; }
+  state.myWords.unshift({cat, word, eg});
+  document.getElementById("newWordCat").value = "";
+  document.getElementById("newWord").value = "";
+  document.getElementById("newWordEg").value = "";
+  addScore(5, "myVocab");
+  showToast("🌟 收藏成功！获得5积分");
+  renderMyVocab();
+}
+
+function addMySentence(){
+  const cat  = document.getElementById("newSentCat").value;
+  const type = document.getElementById("newSentType").value.trim() || "好句";
+  const s    = document.getElementById("newSent").value.trim();
+  if(!s){ showToast("请输入好句！"); return; }
+  state.mySentences.unshift({cat, type, s});
+  document.getElementById("newSentCat").value = "";
+  document.getElementById("newSentType").value = "";
+  document.getElementById("newSent").value = "";
+  addScore(5, "myVocab");
+  showToast("🌟 收藏成功！获得5积分");
+  renderMyVocab();
+}
+
+function deleteMyWord(idx){
+  state.myWords.splice(idx,1); saveState(); renderMyVocab();
+}
+function deleteMyS(idx){
+  state.mySentences.splice(idx,1); saveState(); renderMyVocab();
+}
+
+function renderMyVocab(){
+  const el = document.getElementById("myVocabList");
+  if(state.myWords.length===0 && state.mySentences.length===0){
+    el.innerHTML = `<div style="color:#b2bec3;font-size:.88rem;text-align:center;padding:20px">还没有收藏哦，快去添加第一条吧！✨</div>`;
+    return;
+  }
+  let html = "";
+  if(state.myWords.length>0){
+    html += `<div style="font-size:.88rem;font-weight:700;color:var(--primary);margin-bottom:10px">💎 我收藏的好词（共${state.myWords.length}条）</div>`;
+    state.myWords.forEach((item,i)=>{
+      html += `<div class="my-item">
+        <div class="my-item-content">
+          ${item.cat?`<span class="my-item-type">${item.cat}</span>`:""}
+          <div class="my-item-word">${item.word}</div>
+          ${item.eg?`<div class="my-item-eg">${item.eg}</div>`:""}
+        </div>
+        <button class="copy-btn" onclick="copyText('${escAttr(item.word)}')">复制</button>
+        <button class="del-btn" onclick="deleteMyWord(${i})" title="删除">✕</button>
+      </div>`;
+    });
+  }
+  if(state.mySentences.length>0){
+    html += `<div style="font-size:.88rem;font-weight:700;color:var(--primary);margin:14px 0 10px">✍️ 我收藏的好句（共${state.mySentences.length}条）</div>`;
+    state.mySentences.forEach((item,i)=>{
+      html += `<div class="my-item">
+        <div class="my-item-content">
+          ${item.cat?`<span class="my-item-type">${item.cat}</span>`:""}
+          <span class="my-item-type">${item.type}</span>
+          <span class="my-item-eg">${item.s}</span>
+        </div>
+        <button class="copy-btn" onclick="copyText('${escAttr(item.s)}')">复制</button>
+        <button class="del-btn" onclick="deleteMyS(${i})" title="删除">✕</button>
+      </div>`;
+    });
+  }
+  el.innerHTML = html;
+}
+
+// ══════════════════════════════════════════
+//  模块2：作文引导
+// ══════════════════════════════════════════
+let selType=null, selTopic=null;
+function initGuide(){
+  const el=document.getElementById("guideTypes");
+  const icons={"写人":"👤 写人","写景":"🌿 写景","写事":"📅 写事","状物":"🎍 状物"};
+  Object.keys(GUIDE_DATA).forEach(t=>{
+    const btn=document.createElement("button");
+    btn.className="type-btn"; btn.innerHTML=icons[t];
+    btn.onclick=()=>selectGuideType(t,btn);
+    el.appendChild(btn);
+  });
+}
+function selectGuideType(type,btn){
+  selType=type; selTopic=null;
+  document.querySelectorAll(".type-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("guide-result").style.display="none";
+  const grid=document.getElementById("topicGrid"); grid.innerHTML="";
+  GUIDE_DATA[type].topics.forEach(tp=>{
+    const d=document.createElement("div");
+    d.className="topic-item"; d.textContent=tp;
+    d.onclick=()=>{ selTopic=tp; document.querySelectorAll(".topic-item").forEach(x=>x.classList.remove("chosen")); d.classList.add("chosen"); };
+    grid.appendChild(d);
+  });
+  document.getElementById("topicCard").style.display="block";
+}
+function generateFramework(){
+  if(!selType)  { showToast("请先选择作文类型！"); return; }
+  if(!selTopic) { showToast("请先选择一个题目！"); return; }
+  let html="";
+  GUIDE_DATA[selType].framework.forEach((step,i)=>{
+    html+=`<div class="fw-step"><div class="fw-num">${i+1}</div><div class="fw-content">
+      <h4>${step.title}</h4><p>${step.desc}</p><div class="fw-tips">`;
+    step.tips.forEach(t=>{ html+=`<span>💡 ${t}</span>`; });
+    html+=`</div></div></div>`;
+  });
+  document.getElementById("frameworkBox").innerHTML=html;
+  document.getElementById("guide-result").style.display="block";
+  addScore(3,"guide");
+  showToast("✅ 写作框架生成成功！");
+  document.getElementById("guide-result").scrollIntoView({behavior:"smooth"});
+}
+
+// ══════════════════════════════════════════
+//  模块3：句子升级
+// ══════════════════════════════════════════
+function initUpgrade(){
+  const el=document.getElementById("exampleSentences");
+  UPGRADE_EXAMPLES.forEach(ex=>{
+    const row=document.createElement("div");
+    row.className="example-row";
+    row.onclick=()=>{ document.getElementById("ugInput").value=ex.before; document.getElementById("ugResult").innerHTML=`<div class="placeholder">点击"升级"查看效果</div>`; };
+    let afterHtml="";
+    ex.after.forEach(a=>{ afterHtml+=`<div style="margin-bottom:6px"><span style="font-size:.72rem;background:#e8f5e9;color:#2e7d32;padding:1px 6px;border-radius:6px;margin-right:4px">${a.tech}</span>${a.s}</div>`; });
+    row.innerHTML=`<div class="ex-before">📌 ${ex.before}</div><div class="ex-arrow">→</div><div class="ex-after">${afterHtml}</div>`;
+    el.appendChild(row);
+  });
+}
+function upgradeSentence(){
+  const input=document.getElementById("ugInput").value.trim();
+  if(!input){ showToast("请输入一个句子！"); return; }
+  let matched=null;
+  for(const ex of UPGRADE_EXAMPLES){
+    if(input===ex.before||input.includes(ex.before.replace("。",""))){ matched=ex; break; }
+  }
+  if(!matched) for(const rule of UPGRADE_RULES){ if(rule.keys.some(k=>input.includes(k))){ matched={after:rule.tips}; break; } }
+  let html="";
+  if(matched){
+    matched.after.forEach(a=>{
+      html+=`<div class="upgrade-item"><span class="upgrade-label label-tech">${a.tech}</span>
+        <div class="label-sentence" onclick="copyText('${escAttr(a.s)}')" style="cursor:pointer" title="点击复制">📋 ${a.s}</div></div>`;
+    });
+  } else {
+    html=`<div class="upgrade-item"><span class="upgrade-label label-tech">比喻</span><div class="label-sentence">试试把句子里的感受比作一个具体的事物，比如"心情好像…"、"感觉像…"</div></div>
+    <div class="upgrade-item"><span class="upgrade-label label-tech">细节</span><div class="label-sentence">加入具体的动作细节，"他做了什么"比"他很××"更生动。</div></div>
+    <div class="upgrade-item"><span class="upgrade-label label-tech">感官</span><div class="label-sentence">除了视觉，加入听觉、嗅觉、触觉的描写，让句子更立体。</div></div>`;
+  }
+  document.getElementById("ugResult").innerHTML=html;
+  addScore(2,"upgrade");
+  showToast("✨ 升级完成！");
+}
+
+// ══════════════════════════════════════════
+//  模块4：范文拆解
+// ══════════════════════════════════════════
+function initEssay(){
+  const tabsEl=document.getElementById("essayTabs");
+  const contEl=document.getElementById("essayContent");
+  ESSAY_DATA.forEach((es,i)=>{
+    const btn=document.createElement("button");
+    btn.className="etab"+(i===0?" active":""); btn.textContent=es.title;
+    btn.onclick=()=>switchEssayTab(i);
+    tabsEl.appendChild(btn);
+    const sec=document.createElement("div");
+    sec.className="essay-section"+(i===0?" active":""); sec.id="es-"+i;
+    let html="";
+    es.paras.forEach(p=>{
+      html+=`<div class="card"><div class="essay-block"><div class="essay-para">${p.text}</div><div class="anno-list">`;
+      p.annos.forEach(a=>{ html+=`<div class="anno-item"><div class="anno-dot dot-${a.color}"></div><div class="anno-text"><span class="anno-key">「${a.key}」</span>：${a.text}</div></div>`; });
+      html+=`</div><div class="skill-tags">`;
+      p.skills.forEach(sk=>{ html+=`<span class="skill-tag">🎯 ${sk}</span>`; });
+      html+=`</div></div></div>`;
+    });
+    sec.innerHTML=html; contEl.appendChild(sec);
+  });
+}
+function switchEssayTab(idx){
+  document.querySelectorAll(".etab").forEach((b,i)=>b.classList.toggle("active",i===idx));
+  document.querySelectorAll(".essay-section").forEach((s,i)=>s.classList.toggle("active",i===idx));
+  addScore(2,"essay");
+}
+
+// ══════════════════════════════════════════
+//  模块5：写作练习
+// ══════════════════════════════════════════
+let curTopicIdx=0;
+function initPractice(){ curTopicIdx=Math.floor(Math.random()*PRACTICE_TOPICS.length); renderTopic(); }
+function renderTopic(){ const t=PRACTICE_TOPICS[curTopicIdx]; document.getElementById("todTopic").textContent="题目："+t.topic; document.getElementById("todHint").textContent="💡 "+t.hint; }
+function changeTopic(){ curTopicIdx=(curTopicIdx+1)%PRACTICE_TOPICS.length; renderTopic(); document.getElementById("practiceText").value=""; document.getElementById("wordCount").textContent="已写 0 字"; document.getElementById("feedbackBox").style.display="none"; }
+function updateWordCount(){ document.getElementById("wordCount").textContent="已写 "+document.getElementById("practiceText").value.replace(/\s/g,"").length+" 字"; }
+function clearPractice(){ document.getElementById("practiceText").value=""; document.getElementById("wordCount").textContent="已写 0 字"; document.getElementById("feedbackBox").style.display="none"; }
+
+function submitPractice(){
+  const text=document.getElementById("practiceText").value.trim();
+  if(text.replace(/\s/g,"").length<30){ showToast("至少写30个字才能提交哦！"); return; }
+  const wc=text.replace(/\s/g,"").length;
+  const sc=evaluateEssay(text,wc);
+  renderFeedback(sc,wc);
+  addScore(10,"practice");
+  showToast("🎉 批改完成！获得10积分");
+}
+function evaluateEssay(text,wc){
+  const wcScore=wc<100?2:wc<200?3:wc<300?4:5;
+  const rhetorical=["像","好像","仿佛","如同","似乎","宛如"].some(m=>text.includes(m))?4:3;
+  const sensor=["闻到","听到","感觉","摸","尝","看见","望","瞧"].filter(w=>text.includes(w)).length;
+  const detail=Math.min(5,2+sensor);
+  const paras=text.split(/\n+/).filter(p=>p.trim().length>0).length;
+  const structure=paras>=3?5:paras===2?4:3;
+  const emotion=["高兴","感动","难过","激动","兴奋","担心","紧张","开心","欣慰","骄傲"].some(w=>text.includes(w))?4:3;
+  return {wcScore,rhetorical,detail,structure,emotion};
+}
+function renderFeedback(sc,wc){
+  const dims=[{label:"字数",val:sc.wcScore},{label:"修辞运用",val:sc.rhetorical},{label:"细节描写",val:sc.detail},{label:"文章结构",val:sc.structure},{label:"情感表达",val:sc.emotion}];
+  document.getElementById("feedbackScores").innerHTML=dims.map(d=>`<div class="score-card"><div class="sc-label">${d.label}</div><div class="sc-val">${d.val}/5</div><div class="sc-star">${"⭐".repeat(d.val)}${"☆".repeat(5-d.val)}</div></div>`).join("");
+  const sugs=[];
+  if(wc<200) sugs.push({icon:"📝",text:"文章字数还比较少，可以把事情的过程写得再详细一些。"});
+  if(sc.rhetorical<4) sugs.push({icon:"🎨",text:'试试加入比喻或拟人修辞，比如"像……一样"，让描写更生动。'});
+  if(sc.detail<4) sugs.push({icon:"👁️",text:"可以加入更多感官描写——听到什么、闻到什么、感觉到什么。"});
+  if(sc.structure<4) sugs.push({icon:"📐",text:"记得分段，开头、经过、结尾各成一段，结构会更清晰。"});
+  if(sc.emotion<4) sugs.push({icon:"💖",text:"在关键的地方加一两句心里的感受，读者会更有共鸣。"});
+  if(sugs.length===0) sugs.push({icon:"🌟",text:"写得很好！尝试在好词好句库里找一些词让文章更出彩。"});
+  document.getElementById("feedbackSuggestions").innerHTML=`<div style="font-size:.88rem;font-weight:700;color:var(--primary);margin-bottom:10px">💬 改进建议：</div>`+sugs.map(s=>`<div class="suggestion-item"><span style="font-size:1rem;flex-shrink:0">${s.icon}</span>${s.text}</div>`).join("");
+  document.getElementById("feedbackBox").style.display="block";
+  document.getElementById("feedbackBox").scrollIntoView({behavior:"smooth"});
+}
+
+// ══════════════════════════════════════════
+//  模块6：荣誉墙
+// ══════════════════════════════════════════
+function renderBadges(){
+  document.getElementById("badgeWall").innerHTML=BADGE_DATA.map((b,i)=>{
+    const ok=state.unlockedBadges.includes(i);
+    return `<div class="badge-item ${ok?"":"locked"}"><div class="badge-icon">${b.icon}</div><div class="badge-name">${b.name}</div><div class="badge-cond">${b.cond}</div></div>`;
+  }).join("");
+  document.getElementById("badgeSummary").textContent=`已解锁 ${state.unlockedBadges.length} / ${BADGE_DATA.length} 个勋章`;
+  document.getElementById("levelRoad").innerHTML=`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">`+LEVELS.map((lv,i)=>{
+    const active=state.totalScore>=lv.min;
+    return `<div style="padding:8px 16px;border-radius:12px;font-size:.85rem;font-weight:700;background:${active?"var(--primary)":"#f0ecff"};color:${active?"white":"var(--primary)"}">${lv.label} <span style="font-size:.72rem;opacity:.8">${lv.min}分</span></div>${i<LEVELS.length-1?'<div style="color:var(--primary-light)">→</div>':""}`;
+  }).join("")+`</div>`;
+}
+
+// ══════════════════════════════════════════
+//  初始化（已合并到上面的 window.onload）
+// ══════════════════════════════════════════
+</script>
+</body>
+</html>

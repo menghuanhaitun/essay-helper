@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>李欣阳的作文助手 ✍️</title>
+<title id="pageTitle">李欣阳的作文助手 ✍️</title>
+
 <style>
   :root {
     --primary: #6c63ff;
@@ -32,8 +33,8 @@
   .score-num  { font-weight:700; color:var(--primary); font-size:1.1rem; }
   .level-badge { background:linear-gradient(135deg,var(--primary),var(--secondary)); color:white; padding:3px 14px; border-radius:20px; font-weight:700; font-size:.85rem; }
 
-  /* 导航 */
-  nav { display:flex; gap:8px; padding:14px 16px; overflow-x:auto; background:white; border-bottom:2px solid #f0ecff; position:sticky; top:0; z-index:100; }
+/* 导航 */
+nav { display:flex; gap:8px; padding:14px 16px; overflow-x:auto; background:white; border-bottom:2px solid #f0ecff; position:sticky; top:0; z-index:100; justify-content:center; }
   nav::-webkit-scrollbar { height:4px; }
   nav::-webkit-scrollbar-thumb { background:var(--primary-light); border-radius:2px; }
   .nav-btn { flex-shrink:0; padding:8px 18px; border-radius:24px; border:2px solid #e0d9ff; background:white; color:var(--primary); font-size:.88rem; font-weight:600; cursor:pointer; transition:all .2s; white-space:nowrap; }
@@ -265,7 +266,7 @@
 </div>
 
 <header>
-  <h1>✍️ 李欣阳的作文助手</h1>
+  <h1 id="appTitle">✍️ 李欣阳的作文助手</h1>
   <p>好词好句 · 写作框架 · 句子升级 · 范文拆解 · 写作练习</p>
   <button id="syncBtn" class="sync-btn" onclick="showSyncMenu()" style="display:none;">☁️ 同步</button>
 </header>
@@ -286,6 +287,10 @@
   <button class="nav-btn" onclick="switchModule('essay',this)">🔍 范文拆解</button>
   <button class="nav-btn" onclick="switchModule('practice',this)">✏️ 写作练习</button>
   <button class="nav-btn" onclick="switchModule('badges',this)">🏆 荣誉墙</button>
+  <button class="nav-btn" id="loginBtn" onclick="showLoginModal()">🔐 登录</button>
+  <button class="nav-btn" id="userActions" style="display:none;">
+    <span id="welcomeUser">用户</span>
+  </button>
 </nav>
 
 <main>
@@ -454,6 +459,8 @@ window.onload = function() {
     }
   }
 
+  updateLoginButton();
+
   // 原有的初始化
   loadState();
   initVocab();
@@ -493,6 +500,7 @@ async function handleLogin() {
     await cloudLogin(username, password);
     document.getElementById('loginModal').style.display = 'none';
     document.getElementById('syncBtn').style.display = 'block';
+    updateLoginButton();
     showToast('✅ 登录成功！');
 
     // 从云端同步数据
@@ -530,6 +538,7 @@ async function handleRegister() {
     await cloudRegister(username, password);
     document.getElementById('loginModal').style.display = 'none';
     document.getElementById('syncBtn').style.display = 'block';
+    updateLoginButton();
     showToast('✅ 注册成功！欢迎加入！');
   } catch (error) {
     showToast('❌ ' + error.message);
@@ -541,6 +550,48 @@ function skipLogin() {
   document.getElementById('loginModal').style.display = 'none';
   showToast('您可以先体验功能，稍后在右上角登录同步数据');
 }
+
+// 显示登录界面
+function showLoginModal() {
+  document.getElementById('loginModal').style.display = 'flex';
+}
+
+// 更新登录按钮状态
+function updateLoginButton() {
+  const loginBtn = document.getElementById('loginBtn');
+  const userActions = document.getElementById('userActions');
+  const welcomeUser = document.getElementById('welcomeUser');
+
+  if (isLoggedIn()) {
+    loginBtn.style.display = 'none';
+    userActions.style.display = 'block';
+    welcomeUser.textContent = localStorage.getItem('username') || '用户';
+  } else {
+    loginBtn.style.display = 'block';
+    userActions.style.display = 'none';
+  }
+
+  updateAppTitle();
+}
+
+// 更新应用标题
+function updateAppTitle() {
+  const appTitle = document.getElementById('appTitle');
+  const pageTitle = document.getElementById('pageTitle');
+
+  if (isLoggedIn()) {
+    const username = localStorage.getItem('username') || '李欣阳';
+    const titleText = `${username}的作文助手`;
+    appTitle.textContent = '✍️ ' + titleText;
+    pageTitle.textContent = titleText + ' ✍️';
+  } else {
+    appTitle.textContent = '✍️ 李欣阳的作文助手';
+    pageTitle.textContent = '李欣阳的作文助手 ✍️';
+  }
+}
+
+
+
 
 // 显示同步菜单
 function showSyncMenu() {
@@ -593,9 +644,11 @@ function cloudLogoutNow() {
   if (confirm('确定要退出登录吗？退出后数据将只保存在本地。')) {
     cloudLogout();
     document.getElementById('syncBtn').style.display = 'none';
+    updateLoginButton();
     showToast('👋 已退出登录');
   }
 }
+
 
 // 修改原有的保存函数，添加自动同步
 const originalSaveState = saveState;

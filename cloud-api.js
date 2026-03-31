@@ -6,42 +6,34 @@ function isLoggedIn() {
   return !!localStorage.getItem('userId');
 }
 
-// 注册
+// 注册（本地模式）
 async function cloudRegister(username, password) {
-  const response = await fetch(CLOUD_API_BASE + '/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || '注册失败');
+  // 本地模式：简单验证用户名不为空即可
+  if (!username || username.trim().length === 0) {
+    throw new Error('用户名不能为空');
   }
 
-  // 保存用户信息
-  localStorage.setItem('userId', data.userId);
+  // 模拟注册成功
+  const userId = 'local-' + Date.now();
+  localStorage.setItem('userId', userId);
   localStorage.setItem('username', username);
-  return data;
+
+  return { success: true, userId: userId, username: username };
 }
 
-// 登录
+// 登录（本地模式）
 async function cloudLogin(username, password) {
-  const response = await fetch(CLOUD_API_BASE + '/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || '登录失败');
+  // 本地模式：简单验证用户名不为空即可
+  if (!username || username.trim().length === 0) {
+    throw new Error('用户名不能为空');
   }
 
-  // 保存用户信息
-  localStorage.setItem('userId', data.userId);
-  localStorage.setItem('username', data.username);
-  return data;
+  // 模拟登录成功
+  const userId = 'local-' + Date.now();
+  localStorage.setItem('userId', userId);
+  localStorage.setItem('username', username);
+
+  return { success: true, userId: userId, username: username };
 }
 
 // 退出登录
@@ -50,120 +42,40 @@ function cloudLogout() {
   localStorage.removeItem('username');
 }
 
-// 从云端加载数据
+// 从云端加载数据（本地模式）
 async function cloudLoadData() {
-  const userId = localStorage.getItem('userId');
-  if (!userId) {
-    throw new Error('未登录');
-  }
-
-  const response = await fetch(CLOUD_API_BASE + '/user-data?userId=' + userId, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' }
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || '加载数据失败');
-  }
-
-  return data.data;
+  // 本地模式：数据已经在 localStorage 中，直接返回成功
+  return { success: true, message: '本地模式：数据已在浏览器中' };
 }
 
-// 保存数据到云端
+// 保存数据到云端（本地模式）
 async function cloudSaveData(dataType, dataValue, category = null) {
-  const userId = localStorage.getItem('userId');
-  if (!userId) {
-    throw new Error('未登录');
-  }
-
-  const response = await fetch(CLOUD_API_BASE + '/user-data', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      userId,
-      dataType,
-      dataValue: JSON.stringify(dataValue),
-      category
-    })
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || '保存失败');
-  }
-
-  return data;
+  // 本地模式：数据已经通过 saveState() 保存到 localStorage，无需额外操作
+  return { success: true, message: '本地模式：数据已自动保存到浏览器' };
 }
 
-// 删除云端数据
+// 删除云端数据（本地模式）
 async function cloudDeleteData(id) {
-  const userId = localStorage.getItem('userId');
-  if (!userId) {
-    throw new Error('未登录');
-  }
-
-  const response = await fetch(CLOUD_API_BASE + '/user-data/' + id + '?userId=' + userId, {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' }
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || '删除失败');
-  }
-
-  return data;
+  // 本地模式：数据已经通过 localStorage 管理，无需额外操作
+  return { success: true, message: '本地模式：数据已在浏览器中管理' };
 }
 
-// 同步本地数据到云端
+// 同步本地数据到云端（本地模式）
 async function syncToCloud() {
   if (!isLoggedIn()) {
     return { success: false, message: '未登录' };
   }
 
-  try {
-    // 保存积分
-    await cloudSaveData('score', { totalScore: state.totalScore });
-
-    // 保存好词好句
-    for (const word of state.myWords) {
-      await cloudSaveData('my_word', word, word.cat);
-    }
-    for (const sent of state.mySentences) {
-      await cloudSaveData('my_sentence', sent, sent.cat);
-    }
-
-    return { success: true, message: '同步成功' };
-  } catch (error) {
-    return { success: false, message: error.message };
-  }
+  // 本地模式：数据已经在 localStorage 中，无需同步
+  return { success: true, message: '本地模式：数据已自动保存到浏览器' };
 }
 
-// 从云端同步到本地
+// 从云端同步到本地（本地模式）
 async function syncFromCloud() {
   if (!isLoggedIn()) {
     return { success: false, message: '未登录' };
   }
 
-  try {
-    const data = await cloudLoadData();
-
-    // 恢复积分
-    if (data.score) {
-      const scoreData = JSON.parse(data.score);
-      state.totalScore = scoreData.totalScore || 0;
-    }
-
-    // 恢复好词好句
-    state.myWords = data.myWords.map(w => ({ w: w.w, cat: w.cat, id: w.id }));
-    state.mySentences = data.mySentences.map(s => ({ s: s.s, cat: s.cat, id: s.id }));
-
-    saveState();
-    updateScoreBar();
-
-    return { success: true, message: '同步成功' };
-  } catch (error) {
-    return { success: false, message: error.message };
-  }
+  // 本地模式：数据已经在 localStorage 中，加载即可
+  return { success: true, message: '本地模式：数据已从浏览器加载' };
 }

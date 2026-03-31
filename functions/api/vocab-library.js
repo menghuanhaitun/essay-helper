@@ -1,10 +1,12 @@
 /**
  * 读取词库数据
  */
-import { json } from '@cloudflare/workers-types';
-
-export async function onRequest(context) {
-  const { env } = context;
+export async function onRequestGet({ request, env }) {
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
 
   try {
     // 获取查询参数
@@ -36,16 +38,31 @@ export async function onRequest(context) {
     const result = await stmt.bind(...params).all();
 
     // 返回结果
-    return json({
+    return new Response(JSON.stringify({
       success: true,
       data: result.results
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
     console.error('读取词库失败:', error);
-    return json({
+    return new Response(JSON.stringify({
       success: false,
       error: error.message
-    }, { status: 500 });
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
+}
+
+export async function onRequestOptions() {
+  return new Response(null, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    }
+  });
 }

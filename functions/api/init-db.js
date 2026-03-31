@@ -2,10 +2,12 @@
  * 初始化数据库（创建表 + 导入词库）
  * 只需要执行一次
  */
-import { json } from '@cloudflare/workers-types';
-
-export async function onRequest(context) {
-  const { env } = context;
+export async function onRequestPost({ request, env }) {
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
 
   try {
     // 创建词库表
@@ -206,7 +208,7 @@ export async function onRequest(context) {
       }
     }
 
-    return json({
+    return new Response(JSON.stringify({
       success: true,
       message: '数据库初始化成功！',
       stats: {
@@ -214,13 +216,28 @@ export async function onRequest(context) {
         sentences: sentenceCount,
         total: wordCount + sentenceCount
       }
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
     console.error('初始化失败:', error);
-    return json({
+    return new Response(JSON.stringify({
       success: false,
       error: error.message
-    }, { status: 500 });
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
+}
+
+export async function onRequestOptions() {
+  return new Response(null, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    }
+  });
 }

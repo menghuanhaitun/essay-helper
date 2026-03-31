@@ -510,6 +510,11 @@ function getVocabDataSync() {
 //  登录和云同步功能
 // ══════════════════════════════════════════
 
+// 检查是否已登录
+function isLoggedIn() {
+  return !!(localStorage.getItem('token') && localStorage.getItem('username'));
+}
+
 // 页面加载时检查登录状态
 window.onload = async function() {
   // 检查是否已经登录

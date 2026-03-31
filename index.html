@@ -463,9 +463,14 @@ window.onload = function() {
 
   // 原有的初始化
   loadState();
-  initVocab();
-  initCategorySelects();
   updateScoreBar();
+  initVocab();
+  initGuide();
+  initUpgrade();
+  initEssay();
+  initPractice();
+  initCategorySelects();
+  renderMyVocab();
 };
 
 // 切换登录/注册标签
@@ -1299,14 +1304,8 @@ function renderBadges(){
 }
 
 // ══════════════════════════════════════════
-//  初始化
+//  初始化（已合并到上面的 window.onload）
 // ══════════════════════════════════════════
-window.onload=function(){
-  loadState(); updateScoreBar();
-  initVocab(); initGuide(); initUpgrade(); initEssay(); initPractice();
-  initCategorySelects();
-  renderMyVocab();
-};
 </script>
 </body>
 </html>

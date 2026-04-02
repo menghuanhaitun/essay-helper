@@ -1055,7 +1055,7 @@ async function initGuide(){
 function renderGuideTypes(){
   const el = document.getElementById("guideTypes");
   el.innerHTML = "";
-  const icons = {"写人":"👤 写人","写景":"🌿 写景","写事":"📅 写事","状物":"🎍 状物"};
+  const icons = {"写人":"👤 写人","写景":"🌿 写景","写事":"📅 写事","状物":"🎍 状物","想象":"💫 想象","读后感":"📖 读后感"};
   Object.keys(_guideData).forEach(t=>{
     const btn = document.createElement("button");
     btn.className = "type-btn";

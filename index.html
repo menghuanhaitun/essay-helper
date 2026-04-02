@@ -377,7 +377,9 @@ nav { display:flex; gap:8px; padding:14px 16px; overflow-x:auto; background:whit
     </div>
   </div>
   <div class="card">
-    <div class="card-title">💡 经典升级示例 — 点击把原句填入框</div>
+    <div class="card-title">💡 经典升级示例 — 点击把原句填入框
+      <button onclick="changeUpgradeGroup()" style="float:right;padding:4px 14px;border-radius:8px;background:#e8f0fe;color:var(--primary);border:none;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s" onmouseover="this.style.background='var(--primary)';this.style.color='#fff'" onmouseout="this.style.background='#e8f0fe';this.style.color='var(--primary)'">🔄 换一组</button>
+    </div>
     <div id="exampleSentences"></div>
   </div>
 </div>
@@ -1114,7 +1116,7 @@ async function initUpgrade(){
   el.innerHTML = '<div class="placeholder">加载示例中…</div>';
   try {
     const [exRes, ruRes] = await Promise.all([
-      fetch('https://essay-helper-api.ming-li8245.workers.dev/api/upgrade-examples?limit=5'),
+      fetch('https://essay-helper-api.ming-li8245.workers.dev/api/upgrade-examples?limit=15'),
       fetch('https://essay-helper-api.ming-li8245.workers.dev/api/upgrade-rules')
     ]);
     const exJson = await exRes.json();
@@ -1137,19 +1139,25 @@ function renderUpgradeExamples(){
   if(!list || list.length === 0){
     el.innerHTML = '<div class="placeholder">暂无示例</div>'; return;
   }
+  // API 返回扁平格式 {before_text, tech, after_text}，按 before_text 分组
+  const grouped = {};
   list.forEach(ex => {
+    const key = ex.before_text;
+    if(!grouped[key]) grouped[key] = { before: key, items: [] };
+    grouped[key].items.push({ tech: ex.tech, after: ex.after_text });
+  });
+  Object.values(grouped).slice(0, 5).forEach(group => {
     const row = document.createElement("div");
     row.className = "example-row";
     row.onclick = () => {
-      document.getElementById("ugInput").value = ex.before;
+      document.getElementById("ugInput").value = group.before;
       document.getElementById("ugResult").innerHTML = '<div class="placeholder">点击"升级"查看效果</div>';
     };
     let afterHtml = "";
-    const afters = typeof ex.after === 'string' ? JSON.parse(ex.after) : ex.after;
-    afters.forEach(a => {
-      afterHtml += `<div style="margin-bottom:6px"><span style="font-size:.72rem;background:#e8f5e9;color:#2e7d32;padding:1px 6px;border-radius:6px;margin-right:4px">${a.tech}</span>${a.s}</div>`;
+    group.items.forEach(item => {
+      afterHtml += `<div style="margin-bottom:6px"><span style="font-size:.72rem;background:#e8f5e9;color:#2e7d32;padding:1px 6px;border-radius:6px;margin-right:4px">${item.tech}</span>${item.after}</div>`;
     });
-    row.innerHTML = `<div class="ex-before">📌 ${ex.before}</div><div class="ex-arrow">→</div><div class="ex-after">${afterHtml}</div>`;
+    row.innerHTML = `<div class="ex-before">📌 ${group.before}</div><div class="ex-arrow">→</div><div class="ex-after">${afterHtml}</div>`;
     el.appendChild(row);
   });
 }
@@ -1158,7 +1166,7 @@ async function changeUpgradeGroup(){
   const el = document.getElementById("exampleSentences");
   el.innerHTML = '<div class="placeholder">换一组中…</div>';
   try {
-    const res = await fetch('https://essay-helper-api.ming-li8245.workers.dev/api/upgrade-examples?limit=5');
+    const res = await fetch('https://essay-helper-api.ming-li8245.workers.dev/api/upgrade-examples?limit=15');
     const json = await res.json();
     if(json.success) _upgradeExamples = json.data;
   } catch(e) {}
@@ -1168,28 +1176,41 @@ async function changeUpgradeGroup(){
 function upgradeSentence(){
   const input = document.getElementById("ugInput").value.trim();
   if(!input){ showToast("请输入一个句子！"); return; }
-  let matched = null;
+  let html = "";
+
+  // 1. 先从示例中匹配（扁平格式：before_text/tech/after_text），收集所有匹配的
+  let matchedExamples = [];
   for(const ex of _upgradeExamples){
-    if(input === ex.before || input.includes(ex.before.replace("。",""))){ matched = ex; break; }
+    if(input === ex.before_text || input.includes(ex.before_text.replace("。",""))){
+      matchedExamples.push(ex);
+    }
   }
-  if(!matched){
+  if(matchedExamples.length > 0){
+    matchedExamples.forEach(ex => {
+      html += `<div class="upgrade-item"><span class="upgrade-label label-tech">${ex.tech}</span>
+        <div class="label-sentence" onclick="copyText('${escAttr(ex.after_text)}')" style="cursor:pointer" title="点击复制">📋 ${ex.after_text}</div></div>`;
+    });
+  } else {
+    // 2. 再从规则中匹配
+    let ruleMatched = false;
     for(const rule of _upgradeRules){
       const keys = typeof rule.keys === 'string' ? JSON.parse(rule.keys) : rule.keys;
       const tips = typeof rule.tips === 'string' ? JSON.parse(rule.tips) : rule.tips;
-      if(keys.some(k => input.includes(k))){ matched = {after: tips}; break; }
+      if(keys.some(k => input.includes(k))){
+        ruleMatched = true;
+        tips.forEach(a => {
+          html += `<div class="upgrade-item"><span class="upgrade-label label-tech">${a.tech}</span>
+            <div class="label-sentence" onclick="copyText('${escAttr(a.s)}')" style="cursor:pointer" title="点击复制">📋 ${a.s}</div></div>`;
+        });
+        break;
+      }
     }
-  }
-  let html = "";
-  if(matched){
-    const afters = typeof matched.after === 'string' ? JSON.parse(matched.after) : matched.after;
-    afters.forEach(a => {
-      html += `<div class="upgrade-item"><span class="upgrade-label label-tech">${a.tech}</span>
-        <div class="label-sentence" onclick="copyText('${escAttr(a.s)}')" style="cursor:pointer" title="点击复制">📋 ${a.s}</div></div>`;
-    });
-  } else {
-    html = `<div class="upgrade-item"><span class="upgrade-label label-tech">比喻</span><div class="label-sentence">试试把句子里的感受比作一个具体的事物，比如"心情好像…"、"感觉像…"</div></div>
-    <div class="upgrade-item"><span class="upgrade-label label-tech">细节</span><div class="label-sentence">加入具体的动作细节，"他做了什么"比"他很××"更生动。</div></div>
-    <div class="upgrade-item"><span class="upgrade-label label-tech">感官</span><div class="label-sentence">除了视觉，加入听觉、嗅觉、触觉的描写，让句子更立体。</div></div>`;
+    // 3. 都没匹配到，给通用建议
+    if(!ruleMatched){
+      html = `<div class="upgrade-item"><span class="upgrade-label label-tech">比喻</span><div class="label-sentence">试试把句子里的感受比作一个具体的事物，比如"心情好像…"、"感觉像…"</div></div>
+      <div class="upgrade-item"><span class="upgrade-label label-tech">细节</span><div class="label-sentence">加入具体的动作细节，"他做了什么"比"他很××"更生动。</div></div>
+      <div class="upgrade-item"><span class="upgrade-label label-tech">感官</span><div class="label-sentence">除了视觉，加入听觉、嗅觉、触觉的描写，让句子更立体。</div></div>`;
+    }
   }
   document.getElementById("ugResult").innerHTML = html;
   addScore(2,"upgrade");

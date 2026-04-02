@@ -387,6 +387,13 @@ nav { display:flex; gap:8px; padding:14px 16px; overflow-x:auto; background:whit
   <div class="card">
     <div class="card-title">🔍 范文拆解 — 学习优秀作文的秘密</div>
     <div class="essay-tabs" id="essayTabs"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0">
+      <button class="cat-btn active" onclick="setEssayCategory('',this)">全部</button>
+      <button class="cat-btn" onclick="setEssayCategory('写景',this)">🏞️ 写景</button>
+      <button class="cat-btn" onclick="setEssayCategory('写人',this)">👤 写人</button>
+      <button class="cat-btn" onclick="setEssayCategory('写事',this)">📝 写事</button>
+      <button class="cat-btn" onclick="setEssayCategory('状物',this)">🌿 状物</button>
+    </div>
   </div>
   <div id="essayContent"></div>
 </div>
@@ -680,156 +687,12 @@ saveState = function() {
   }
 };
 
-const GUIDE_DATA = {
-  "写人":{
-    topics:["我的老师","难忘的朋友","我最佩服的人","我的爸爸/妈妈","一位令我感动的陌生人","我的同桌"],
-    framework:[
-      {title:"开头：引人入胜",desc:"用一个印象最深的场景或细节开头，让读者立刻对这个人产生兴趣。",tips:["直接描写人物外貌或动作","用一句话点明人物特点","设置悬念"]},
-      {title:"外貌描写",desc:"抓住最有特点的1-2处外貌，要与人物性格相符合。",tips:["眼睛是心灵的窗户","不要面面俱到","外貌要衬托性格"]},
-      {title:"事例1：典型事件（详写）",desc:"选择最能体现人物品质的一件事，详细描写动作、语言、神态。",tips:["动作要具体","语言要生动","心理活动要真实"]},
-      {title:"事例2：辅助事件（略写）",desc:"再举一两个简短例子，证明这种品质不是偶然的。",tips:["一两句话概括","与详写事例互补","体现一贯性"]},
-      {title:"结尾：抒情升华",desc:"表达对这个人的感情，或写出他/她对你的影响和启发。",tips:["直接抒情","写出受到的影响","首尾呼应"]}
-    ]
-  },
-  "写景":{
-    topics:["我的家乡","美丽的公园","难忘的旅行","校园的四季","家乡的河","美丽的田野"],
-    framework:[
-      {title:"开头：整体印象",desc:"用一两句话描述对这处景色的总体感受，点明地点和时间。",tips:["概括特点","点明时间季节","引起读者兴趣"]},
-      {title:"远景→近景",desc:"先写整体轮廓，再逐步细化，引导读者视线由远及近。",tips:["移步换景","固定视角","由整体到局部"]},
-      {title:"感官多角度",desc:"不只写眼睛看到的，还要写耳朵听到的、鼻子闻到的。",tips:["视觉/听觉/嗅觉","触觉/味觉","动态与静态"]},
-      {title:"重点景物细描",desc:"选1-2处最有特色的景物，用比喻、拟人等手法生动描写。",tips:["至少用一种修辞","写出独特之处","融入情感"]},
-      {title:"结尾：情景交融",desc:"景中含情，说明这处景色对你的意义，或表达热爱之情。",tips:["借景抒情","首尾呼应","点明中心"]}
-    ]
-  },
-  "写事":{
-    topics:["第一次做饭","一次难忘的比赛","我帮助了别人","一次意外的收获","印象最深的一次课","一件后悔的事"],
-    framework:[
-      {title:"开头：交代背景",desc:"交代事情发生的时间、地点、起因，简洁引出主要事件。",tips:["时间地点人物","六要素不遗漏","简洁有力"]},
-      {title:"事情起因",desc:"写清楚事情是怎么开始的，为后面的发展做好铺垫。",tips:["原因要合理","自然引出经过","交代清楚"]},
-      {title:"高潮（重点详写）",desc:"全文最精彩的部分，详细写动作、语言、心理变化。",tips:["多写动作细节","心理描写要真实","语言描写要生动"]},
-      {title:"结果",desc:"写出事情的结果，可以是喜悦、遗憾，也可以是意外。",tips:["结果要真实","与高潮呼应","不要虎头蛇尾"]},
-      {title:"结尾：感悟",desc:"写出这件事给你的启发或感受，点明文章主题。",tips:["感悟要真实","不要说教","简洁有力"]}
-    ]
-  },
-  "状物":{
-    topics:["我喜欢的一种植物","可爱的小动物","我的文具","家乡的特产","一件珍贵的礼物","我最喜欢的玩具"],
-    framework:[
-      {title:"开头：引出所写之物",desc:"用一两句话介绍这个事物，说明为什么要写它。",tips:["总体印象","喜爱之情","设置悬念"]},
-      {title:"外形描写",desc:"从颜色、形状、大小等角度描写事物的外形特征。",tips:["有序描写","抓住特点","运用比喻"]},
-      {title:"特点/用途/习性",desc:"写这个事物最有趣、最特别的地方。",tips:["突出与众不同","有趣的细节","结合亲身观察"]},
-      {title:"与我的故事",desc:"写一个关于这个事物的小故事，说明它对你的意义。",tips:["一件小事","情感联结","让文章有温度"]},
-      {title:"结尾：感情升华",desc:"表达对这个事物的喜爱，或写出它给你的启发。",tips:["真情流露","含蓄或直接皆可","首尾呼应"]}
-    ]
-  }
-};
-
-const UPGRADE_EXAMPLES = [
-  {before:"今天天气很好。",after:[
-    {tech:"比喻",s:"今天的阳光像金色的绸缎，轻轻铺满了整条街道。"},
-    {tech:"感官",s:"今天天空湛蓝如宝石，一缕缕暖风轻抚着脸颊，让人心情格外舒畅。"},
-  ]},
-  {before:"妈妈做的饭很好吃。",after:[
-    {tech:"细节",s:"锅里飘出的香气把我的馋虫都钩出来了，筷子还没夹到嘴里，口水就已经咽了三回。"},
-    {tech:"比喻",s:"妈妈做的红烧肉，肥而不腻，软糯香甜，每一口都像是一个温暖的拥抱。"},
-  ]},
-  {before:"我很高兴。",after:[
-    {tech:"动作写情",s:"我忍不住在原地跳了起来，嘴角咧到了耳朵边，心里像开了一朵大花。"},
-    {tech:"景物衬情",s:"走在回家的路上，感觉连路边的花都开得格外艳丽，风也比平时轻柔许多。"},
-  ]},
-  {before:"小狗很可爱。",after:[
-    {tech:"细节描写",s:"小狗迈着碎步跑过来，摇着它那根小尾巴，两只黑豆般的眼睛闪闪发亮，让人怎么看怎么喜欢。"},
-    {tech:"拟人",s:"小狗像个热情的小主人，看到我回来就欢天喜地地奔过来，绕着我的脚踝转了好几圈。"},
-  ]},
-  {before:"同学帮助了我。",after:[
-    {tech:"具体化",s:"正当我急得团团转的时候，小华二话没说，把自己的橡皮和草稿纸都递了过来，还悄声说：'别慌，我们一起想'。"},
-    {tech:"心理+动作",s:"他把那道题一步一步讲给我听，我看着他认真的眼神，心里涌起一股暖意。"},
-  ]},
-  {before:"老师很严格。",after:[
-    {tech:"对比",s:"老师平时声音不大，但只要她往讲台前一站，整个教室立刻安静下来，连空气都好像凝固了。"},
-    {tech:"事例",s:"那次我作业写得潦草，老师把本子退回来，只在旁边写了四个字：『再来一遍』。我懂了，她是认真的。"},
-  ]},
-];
-
-const UPGRADE_RULES = [
-  {keys:["高兴","开心","快乐","兴奋"],tips:[
-    {tech:"动作写情",s:"我高兴得跳了起来，嘴角咧到耳朵边，整颗心都像在天上飘着。"},
-    {tech:"比喻",s:"那一刻，心里像绽放了一束烟花，噼里啪啦全是光。"},
-  ]},
-  {keys:["难过","伤心","悲伤","哭"],tips:[
-    {tech:"间接描写",s:"我低下头，用力咬住嘴唇，不让眼眶里的泪水掉下来。"},
-    {tech:"景物衬托",s:"那天连天空都阴沉沉的，风吹过来带着凉意，好像也在为我叹气。"},
-  ]},
-  {keys:["紧张","害怕","担心","忐忑"],tips:[
-    {tech:"身体反应",s:"我的心跳得越来越快，手心里渗出了细密的汗珠，脑子里一片空白。"},
-    {tech:"动作细节",s:"我不停地深呼吸，手指无意识地抓紧了裤子，眼神不断飘向那个方向。"},
-  ]},
-  {keys:["漂亮","好看","美丽","美"],tips:[
-    {tech:"比喻具体化",s:"她的笑容像三月里盛开的樱花，明媚、纯净，让人一见就心情大好。"},
-    {tech:"细节勾勒",s:"阳光打在她脸上，映出淡淡的光晕，眼睛弯成了两道温柔的弧线。"},
-  ]},
-  {keys:["好吃","美味","香"],tips:[
-    {tech:"多感官",s:"还没走近，香气就先钻进了鼻子，锅里咕嘟咕嘟地冒着泡，那颜色、那香味，叫人怎么忍得住？"},
-    {tech:"夸张",s:"这碗面好吃到我恨不得把碗底也舔干净，连最后一滴汤都不愿意浪费。"},
-  ]},
-  {keys:["大","很大","宽广","广阔"],tips:[
-    {tech:"对比",s:"站在山顶，眼前的平原一望无际，远处的城市小得像积木，让我感到自己无比渺小。"},
-    {tech:"衬托",s:"操场大得让人站在这头望不见那头，几十个同学在里面活动，也显得稀稀落落。"},
-  ]},
-];
-
-const ESSAY_DATA = [
-  {title:"写景·开头",paras:[{
-    text:`家乡有一条小河，<span class="hl-green">弯弯曲曲地从村子中间流过</span>，像一条<span class="hl-blue">碧绿的玉带</span>，把整个村庄装扮得格外美丽。<span class="hl-orange">清晨，薄薄的雾气笼罩着河面，阳光透过雾气照下来，把水面染成了金色。</span>河边的柳树<span class="hl-pink">舞动着长长的发丝</span>，倒映在水中，美不胜收。`,
-    annos:[
-      {color:"green", key:"弯弯曲曲……流过",   text:"动态描写，写出河流的形态"},
-      {color:"blue",  key:"碧绿的玉带",        text:"比喻修辞，形象贴切，色彩鲜明"},
-      {color:"orange",key:"清晨……染成了金色",  text:"时间+视觉，光影变化描写精准"},
-      {color:"pink",  key:"舞动着长长的发丝",  text:"拟人修辞，赋予柳树生命"},
-    ],
-    skills:["比喻","拟人","视觉描写","动静结合"]
-  }]},
-  {title:"写人·神态动作",paras:[{
-    text:`李老师是我最喜欢的语文老师。<span class="hl-green">她不高，圆圆的脸上总是挂着和蔼的笑容。</span>讲课的时候，<span class="hl-blue">她的眼睛会随着情节变化而变化</span>——讲到有趣的地方，眼睛弯成了月牙；<span class="hl-orange">讲到感人的段落，声音也不由自主地轻了下来，</span>整个教室静得只剩下她那温柔的声音。<span class="hl-pink">有一次我上课走神，她轻轻走到我桌边，没有批评，只是用手指轻轻敲了敲我的课本。</span>那一声敲，胜过了千言万语。`,
-    annos:[
-      {color:"green", key:"圆圆的脸上……笑容",    text:"外貌特征突出，与性格相符"},
-      {color:"blue",  key:"眼睛会随着情节变化",   text:"通过眼神变化展现人物投入"},
-      {color:"orange",key:"声音轻了下来",         text:"细节描写，声音与情绪联动"},
-      {color:"pink",  key:"轻轻敲了敲我的课本",   text:"用动作代替语言，更有感染力"},
-    ],
-    skills:["外貌描写","细节描写","动作传情","侧面烘托"]
-  }]},
-  {title:"写事·高潮",paras:[{
-    text:`跑道上，我咬紧牙关，<span class="hl-green">两腿像灌了铅一样沉，每迈出一步都要用尽全力。</span>耳边是同学们的加油声，<span class="hl-blue">那声音像浪潮一样一浪一浪地涌来，把我快要熄灭的斗志重新点燃。</span><span class="hl-orange">"快了，就快到终点了！"我在心里一遍遍告诉自己。</span>终于，我感到胸前那根彩带"嗖"的一声绷断了——<span class="hl-pink">我冲过了终点线！</span>`,
-    annos:[
-      {color:"green", key:"两腿像灌了铅",        text:"比喻写疲劳感，真实有力"},
-      {color:"blue",  key:"像浪潮一样……点燃",   text:"比喻+通感，展现呐喊的力量"},
-      {color:"orange",key:"心里一遍遍告诉自己",  text:"心理描写，展现坚持的意志"},
-      {color:"pink",  key:"彩带绷断……冲过终点", text:"动作+声音，高潮处戛然而止"},
-    ],
-    skills:["身体感受","心理描写","比喻","细节冲刺"]
-  }]},
-  {title:"状物·细描",paras:[{
-    text:`我家阳台上养了一盆多肉植物，<span class="hl-green">叶片肥厚饱满，像一颗颗圆滚滚的绿色雨滴，</span>整齐地围成一个玫瑰花的形状。<span class="hl-blue">阳光照上去，叶片的边缘透出一圈淡淡的粉红色，</span>像是精心涂上去的腮红。<span class="hl-orange">轻轻用手指碰一下，滑滑的、凉凉的，里面好像蓄满了水。</span><span class="hl-pink">我有时候觉得它像一个安静的小孩，不言不语，却用自己的方式告诉你：认真活着，就已经很美了。</span>`,
-    annos:[
-      {color:"green", key:"圆滚滚的绿色雨滴",    text:"比喻形象，写出叶片质感"},
-      {color:"blue",  key:"淡淡的粉红色……腮红", text:"光影+比喻，细节观察精准"},
-      {color:"orange",key:"滑滑的……蓄满了水",   text:"触觉描写，让读者身临其境"},
-      {color:"pink",  key:"像一个安静的小孩",    text:"由物及人，点出文章主旨"},
-    ],
-    skills:["比喻","触觉描写","光影观察","借物喻人"]
-  }]},
-];
-
-const PRACTICE_TOPICS = [
-  {topic:"一件让我难忘的事",  hint:"想想什么事让你印象特别深，为什么难忘？可以是开心的，也可以是遗憾的。"},
-  {topic:"我最喜欢的季节",    hint:"选一个你最喜欢的季节，用感官多角度描写，说出为什么喜欢。"},
-  {topic:"我的好朋友",        hint:"用外貌+典型事例，写出朋友最让你难忘的特点。"},
-  {topic:"一次有意思的课外活动",hint:"写清楚活动的过程，重点写最精彩的部分，表达你的感受。"},
-  {topic:"我的家乡",          hint:"抓住家乡最有特色的景物或风俗，表达对家乡的热爱。"},
-  {topic:"第一次独立做一件事", hint:"第一次做饭、洗碗、购物……写出过程中的紧张与成就感。"},
-  {topic:"让我感动的一件小事", hint:"有时候一个眼神、一句话、一个动作就能让人感动，写出来吧。"},
-  {topic:"如果我是……",       hint:"发挥想象，如果你是一棵树、一朵云、一条鱼，你会经历什么？"},
-];
+// 以下为兜底数据（API 不可用时使用），正式数据已迁移至 D1 数据库
+const GUIDE_DATA = {"写人":{topics:["我的朋友"],framework:[{title:"开头",desc:"引出人物",tips:["写外貌"]},{title:"正文",desc:"写事例",tips:["写动作"]},{title:"结尾",desc:"抒情",tips:["首尾呼应"]}]}};
+const UPGRADE_EXAMPLES = [{before:"今天天气很好。",after:[{tech:"比喻",s:"今天的阳光像金色的绸缎。"}]}];
+const UPGRADE_RULES = [{keys:["高兴","开心"],tips:[{tech:"动作写情",s:"我高兴得跳了起来。"}]}];
+const ESSAY_DATA = [{title:"范文示例",paras:[{text:"示例段落",annos:[],skills:["示例"]}],type:"示例"}];
+const PRACTICE_TOPICS = [{topic:"一件让我难忘的事",hint:"想想什么事让你印象特别深。"}];
 
 const BADGE_DATA = [
   {icon:"✏️",name:"写作起步",   cond:"完成第1次练习",  req:1,   type:"practice"},
@@ -1340,6 +1203,7 @@ function upgradeSentence(){
 //  模块4：范文拆解（D1 云端加载，随机换一篇）
 // ══════════════════════════════════════════
 let _currentEssay = null;
+let _essayCategory = '';
 
 async function initEssay(){
   const contEl = document.getElementById("essayContent");
@@ -1347,11 +1211,21 @@ async function initEssay(){
   await loadRandomEssay();
 }
 
+function setEssayCategory(cat, btnEl){
+  _essayCategory = cat;
+  // 切换按钮样式
+  btnEl.parentElement.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btnEl.classList.add('active');
+  loadRandomEssay();
+}
+
 async function loadRandomEssay(){
   const contEl = document.getElementById("essayContent");
   contEl.innerHTML = '<div class="placeholder" style="padding:40px;text-align:center">📖 加载范文中…</div>';
   try {
-    const res = await fetch('https://essay-helper-api.ming-li8245.workers.dev/api/essays?random=1');
+    let apiUrl = 'https://essay-helper-api.ming-li8245.workers.dev/api/essays?random=1';
+    if(_essayCategory) apiUrl += '&type=' + encodeURIComponent(_essayCategory);
+    const res = await fetch(apiUrl);
     const json = await res.json();
     if(json.success && json.data){
       _currentEssay = json.data;

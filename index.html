@@ -795,6 +795,9 @@ function copyText(text){ navigator.clipboard.writeText(text).then(()=>showToast(
 
 function escAttr(s){ return s.replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
 
+// Cloudflare Workers API 地址
+const CLOUD_API_BASE = 'https://essay-helper-api.ming-li8245.workers.dev/api';
+
 // ══════════════════════════════════════════
 //  聚合初始化：单次请求加载所有模块
 // ══════════════════════════════════════════
@@ -1097,7 +1100,7 @@ async function initGuide(){
   const el = document.getElementById("guideTypes");
   el.innerHTML = '<div class="placeholder">加载中...</div>';
   try {
-    const res = await fetch('https://essay-helper-api.ming-li8245.workers.dev/api/guide-templates');
+    const res = await fetch(CLOUD_API_BASE + '/guide-templates');
     const json = await res.json();
     if(json.success) _guideData = json.data;
   } catch(e) {}
@@ -1171,8 +1174,8 @@ async function initUpgrade(){
   el.innerHTML = '<div class="placeholder">加载示例中…</div>';
   try {
     const [exRes, ruRes] = await Promise.all([
-      fetch('https://essay-helper-api.ming-li8245.workers.dev/api/upgrade-examples?limit=15'),
-      fetch('https://essay-helper-api.ming-li8245.workers.dev/api/upgrade-rules')
+      fetch(CLOUD_API_BASE + '/upgrade-examples?limit=15'),
+      fetch(CLOUD_API_BASE + '/upgrade-rules')
     ]);
     const exJson = await exRes.json();
     const ruJson = await ruRes.json();
@@ -1221,7 +1224,7 @@ async function changeUpgradeGroup(){
   const el = document.getElementById("exampleSentences");
   el.innerHTML = '<div class="placeholder">换一组中…</div>';
   try {
-    const res = await fetch('https://essay-helper-api.ming-li8245.workers.dev/api/upgrade-examples?limit=15');
+    const res = await fetch(CLOUD_API_BASE + '/upgrade-examples?limit=15');
     const json = await res.json();
     if(json.success) _upgradeExamples = json.data;
   } catch(e) {}
@@ -1296,7 +1299,7 @@ async function loadRandomEssay(){
   const contEl = document.getElementById("essayContent");
   contEl.innerHTML = '<div class="placeholder" style="padding:40px;text-align:center">📖 加载范文中…</div>';
   try {
-    let apiUrl = 'https://essay-helper-api.ming-li8245.workers.dev/api/essays?random=1';
+    let apiUrl = CLOUD_API_BASE + '/essays?random=1';
     if(_essayCategory) apiUrl += '&type=' + encodeURIComponent(_essayCategory);
     const res = await fetch(apiUrl);
     const json = await res.json();
@@ -1359,7 +1362,7 @@ function setPracticeCategory(cat, btn){
 async function loadNewPracticeTopic(){
   document.getElementById("todTopic").textContent = "加载中...";
   try {
-    let url = 'https://essay-helper-api.ming-li8245.workers.dev/api/practice-topics?random=1';
+    let url = CLOUD_API_BASE + '/practice-topics?random=1';
     if(_practiceCategory) url += '&category=' + encodeURIComponent(_practiceCategory);
     const res = await fetch(url);
     const json = await res.json();

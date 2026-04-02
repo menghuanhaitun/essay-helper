@@ -152,6 +152,9 @@ nav { display:flex; gap:8px; padding:14px 16px; overflow-x:auto; background:whit
   .tod-hint  { font-size:.82rem; opacity:.85; line-height:1.6; }
   .tod-change { margin-top:12px; padding:6px 16px; border-radius:10px; border:2px solid rgba(255,255,255,.4); background:transparent; color:white; font-size:.82rem; cursor:pointer; font-weight:600; }
   .tod-change:hover { background:rgba(255,255,255,.15); }
+  .cat-btn { padding:4px 14px; border-radius:16px; border:1.5px solid #e0d9ff; background:white; color:var(--primary); font-size:.8rem; cursor:pointer; font-weight:600; transition:all .2s; }
+  .cat-btn:hover { background:#f0ecff; }
+  .cat-btn.active { background:var(--primary); color:white; border-color:var(--primary); }
   .practice-area textarea { width:100%; height:220px; border:2px solid #e0d9ff; border-radius:12px; padding:16px; font-size:.92rem; resize:vertical; outline:none; font-family:inherit; line-height:1.85; transition:border-color .2s; }
   .practice-area textarea:focus { border-color:var(--primary); }
   .practice-toolbar { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; align-items:center; }
@@ -391,10 +394,19 @@ nav { display:flex; gap:8px; padding:14px 16px; overflow-x:auto; background:whit
 <!-- 模块5：写作练习 -->
 <div class="module" id="mod-practice">
   <div class="topic-of-day">
-    <div class="tod-label">📅 今日练习题目</div>
+    <div class="tod-label">📅 练习题目</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">
+      <button class="cat-btn active" onclick="setPracticeCategory('',this)">全部</button>
+      <button class="cat-btn" onclick="setPracticeCategory('写事',this)">📝 写事</button>
+      <button class="cat-btn" onclick="setPracticeCategory('写人',this)">👤 写人</button>
+      <button class="cat-btn" onclick="setPracticeCategory('写景',this)">🏞️ 写景</button>
+      <button class="cat-btn" onclick="setPracticeCategory('状物',this)">🌿 状物</button>
+      <button class="cat-btn" onclick="setPracticeCategory('想象',this)">💫 想象</button>
+      <button class="cat-btn" onclick="setPracticeCategory('读后感',this)">📖 读后感</button>
+    </div>
     <div class="tod-topic" id="todTopic">加载中...</div>
     <div class="tod-hint"  id="todHint"></div>
-    <button class="tod-change" onclick="changeTopic()">换一个题目 🔄</button>
+    <button class="tod-change" onclick="loadNewPracticeTopic()">换一个题目 🔄</button>
   </div>
   <div class="card">
     <div class="card-title">✏️ 开始写作</div>
@@ -1377,12 +1389,54 @@ function renderLocalEssay(es){
 }
 
 // ══════════════════════════════════════════
-//  模块5：写作练习
+//  模块5：写作练习（D1 云端加载）
 // ══════════════════════════════════════════
-let curTopicIdx=0;
-function initPractice(){ curTopicIdx=Math.floor(Math.random()*PRACTICE_TOPICS.length); renderTopic(); }
-function renderTopic(){ const t=PRACTICE_TOPICS[curTopicIdx]; document.getElementById("todTopic").textContent="题目："+t.topic; document.getElementById("todHint").textContent="💡 "+t.hint; }
-function changeTopic(){ curTopicIdx=(curTopicIdx+1)%PRACTICE_TOPICS.length; renderTopic(); document.getElementById("practiceText").value=""; document.getElementById("wordCount").textContent="已写 0 字"; document.getElementById("feedbackBox").style.display="none"; }
+let _practiceCategory = '';
+let _currentPracticeTopic = null;
+
+async function initPractice(){
+  document.getElementById("todTopic").textContent = "加载中...";
+  document.getElementById("todHint").textContent = "";
+  await loadNewPracticeTopic();
+}
+
+function setPracticeCategory(cat, btn){
+  _practiceCategory = cat;
+  document.querySelectorAll("#mod-practice .cat-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  loadNewPracticeTopic();
+}
+
+async function loadNewPracticeTopic(){
+  document.getElementById("todTopic").textContent = "加载中...";
+  try {
+    let url = 'https://essay-helper-api.ming-li8245.workers.dev/api/practice-topics?random=1';
+    if(_practiceCategory) url += '&category=' + encodeURIComponent(_practiceCategory);
+    const res = await fetch(url);
+    const json = await res.json();
+    if(json.success && json.data){
+      _currentPracticeTopic = json.data;
+      document.getElementById("todTopic").textContent = "题目：" + json.data.topic;
+      document.getElementById("todHint").textContent = "💡 " + json.data.hint;
+      document.getElementById("practiceText").value = "";
+      document.getElementById("wordCount").textContent = "已写 0 字";
+      document.getElementById("feedbackBox").style.display = "none";
+      return;
+    }
+  } catch(e) {}
+  // 兜底
+  if(typeof PRACTICE_TOPICS !== 'undefined' && PRACTICE_TOPICS.length > 0){
+    const t = PRACTICE_TOPICS[Math.floor(Math.random() * PRACTICE_TOPICS.length)];
+    _currentPracticeTopic = t;
+    document.getElementById("todTopic").textContent = "题目：" + t.topic;
+    document.getElementById("todHint").textContent = "💡 " + t.hint;
+  } else {
+    document.getElementById("todTopic").textContent = "加载失败，请刷新重试";
+  }
+  document.getElementById("practiceText").value = "";
+  document.getElementById("wordCount").textContent = "已写 0 字";
+  document.getElementById("feedbackBox").style.display = "none";
+}
 function updateWordCount(){ document.getElementById("wordCount").textContent="已写 "+document.getElementById("practiceText").value.replace(/\s/g,"").length+" 字"; }
 function clearPractice(){ document.getElementById("practiceText").value=""; document.getElementById("wordCount").textContent="已写 0 字"; document.getElementById("feedbackBox").style.display="none"; }
 

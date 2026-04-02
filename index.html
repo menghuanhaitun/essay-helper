@@ -1206,72 +1206,174 @@ function generateFramework(){
 }
 
 // ══════════════════════════════════════════
-//  模块3：句子升级
+//  模块3：句子升级（D1 云端加载）
 // ══════════════════════════════════════════
-function initUpgrade(){
-  const el=document.getElementById("exampleSentences");
-  UPGRADE_EXAMPLES.forEach(ex=>{
-    const row=document.createElement("div");
-    row.className="example-row";
-    row.onclick=()=>{ document.getElementById("ugInput").value=ex.before; document.getElementById("ugResult").innerHTML=`<div class="placeholder">点击"升级"查看效果</div>`; };
-    let afterHtml="";
-    ex.after.forEach(a=>{ afterHtml+=`<div style="margin-bottom:6px"><span style="font-size:.72rem;background:#e8f5e9;color:#2e7d32;padding:1px 6px;border-radius:6px;margin-right:4px">${a.tech}</span>${a.s}</div>`; });
-    row.innerHTML=`<div class="ex-before">📌 ${ex.before}</div><div class="ex-arrow">→</div><div class="ex-after">${afterHtml}</div>`;
+let _upgradeExamples = [];
+let _upgradeRules = [];
+let _upgradeGroupIdx = 0; // 当前展示的示例组起始索引
+
+async function initUpgrade(){
+  const el = document.getElementById("exampleSentences");
+  el.innerHTML = '<div class="placeholder">加载示例中…</div>';
+  try {
+    const [exRes, ruRes] = await Promise.all([
+      fetch('https://essay-helper-api.ming-li8245.workers.dev/api/upgrade-examples?limit=5'),
+      fetch('https://essay-helper-api.ming-li8245.workers.dev/api/upgrade-rules')
+    ]);
+    const exJson = await exRes.json();
+    const ruJson = await ruRes.json();
+    if(exJson.success) _upgradeExamples = exJson.data;
+    if(ruJson.success) _upgradeRules = ruJson.data;
+  } catch(e) {
+    // 兜底使用本地数据
+    _upgradeExamples = UPGRADE_EXAMPLES ? UPGRADE_EXAMPLES.slice(0,5) : [];
+    _upgradeRules = UPGRADE_RULES || [];
+  }
+  renderUpgradeExamples();
+}
+
+function renderUpgradeExamples(){
+  const el = document.getElementById("exampleSentences");
+  el.innerHTML = "";
+  const list = _upgradeExamples;
+  if(!list || list.length === 0){
+    el.innerHTML = '<div class="placeholder">暂无示例</div>'; return;
+  }
+  list.forEach(ex => {
+    const row = document.createElement("div");
+    row.className = "example-row";
+    row.onclick = () => {
+      document.getElementById("ugInput").value = ex.before;
+      document.getElementById("ugResult").innerHTML = '<div class="placeholder">点击"升级"查看效果</div>';
+    };
+    let afterHtml = "";
+    const afters = typeof ex.after === 'string' ? JSON.parse(ex.after) : ex.after;
+    afters.forEach(a => {
+      afterHtml += `<div style="margin-bottom:6px"><span style="font-size:.72rem;background:#e8f5e9;color:#2e7d32;padding:1px 6px;border-radius:6px;margin-right:4px">${a.tech}</span>${a.s}</div>`;
+    });
+    row.innerHTML = `<div class="ex-before">📌 ${ex.before}</div><div class="ex-arrow">→</div><div class="ex-after">${afterHtml}</div>`;
     el.appendChild(row);
   });
 }
+
+async function changeUpgradeGroup(){
+  const el = document.getElementById("exampleSentences");
+  el.innerHTML = '<div class="placeholder">换一组中…</div>';
+  try {
+    const res = await fetch('https://essay-helper-api.ming-li8245.workers.dev/api/upgrade-examples?limit=5');
+    const json = await res.json();
+    if(json.success) _upgradeExamples = json.data;
+  } catch(e) {}
+  renderUpgradeExamples();
+}
+
 function upgradeSentence(){
-  const input=document.getElementById("ugInput").value.trim();
+  const input = document.getElementById("ugInput").value.trim();
   if(!input){ showToast("请输入一个句子！"); return; }
-  let matched=null;
-  for(const ex of UPGRADE_EXAMPLES){
-    if(input===ex.before||input.includes(ex.before.replace("。",""))){ matched=ex; break; }
+  let matched = null;
+  for(const ex of _upgradeExamples){
+    if(input === ex.before || input.includes(ex.before.replace("。",""))){ matched = ex; break; }
   }
-  if(!matched) for(const rule of UPGRADE_RULES){ if(rule.keys.some(k=>input.includes(k))){ matched={after:rule.tips}; break; } }
-  let html="";
+  if(!matched){
+    for(const rule of _upgradeRules){
+      const keys = typeof rule.keys === 'string' ? JSON.parse(rule.keys) : rule.keys;
+      const tips = typeof rule.tips === 'string' ? JSON.parse(rule.tips) : rule.tips;
+      if(keys.some(k => input.includes(k))){ matched = {after: tips}; break; }
+    }
+  }
+  let html = "";
   if(matched){
-    matched.after.forEach(a=>{
-      html+=`<div class="upgrade-item"><span class="upgrade-label label-tech">${a.tech}</span>
+    const afters = typeof matched.after === 'string' ? JSON.parse(matched.after) : matched.after;
+    afters.forEach(a => {
+      html += `<div class="upgrade-item"><span class="upgrade-label label-tech">${a.tech}</span>
         <div class="label-sentence" onclick="copyText('${escAttr(a.s)}')" style="cursor:pointer" title="点击复制">📋 ${a.s}</div></div>`;
     });
   } else {
-    html=`<div class="upgrade-item"><span class="upgrade-label label-tech">比喻</span><div class="label-sentence">试试把句子里的感受比作一个具体的事物，比如"心情好像…"、"感觉像…"</div></div>
+    html = `<div class="upgrade-item"><span class="upgrade-label label-tech">比喻</span><div class="label-sentence">试试把句子里的感受比作一个具体的事物，比如"心情好像…"、"感觉像…"</div></div>
     <div class="upgrade-item"><span class="upgrade-label label-tech">细节</span><div class="label-sentence">加入具体的动作细节，"他做了什么"比"他很××"更生动。</div></div>
     <div class="upgrade-item"><span class="upgrade-label label-tech">感官</span><div class="label-sentence">除了视觉，加入听觉、嗅觉、触觉的描写，让句子更立体。</div></div>`;
   }
-  document.getElementById("ugResult").innerHTML=html;
+  document.getElementById("ugResult").innerHTML = html;
   addScore(2,"upgrade");
   showToast("✨ 升级完成！");
 }
 
 // ══════════════════════════════════════════
-//  模块4：范文拆解
+//  模块4：范文拆解（D1 云端加载，随机换一篇）
 // ══════════════════════════════════════════
-function initEssay(){
-  const tabsEl=document.getElementById("essayTabs");
-  const contEl=document.getElementById("essayContent");
-  ESSAY_DATA.forEach((es,i)=>{
-    const btn=document.createElement("button");
-    btn.className="etab"+(i===0?" active":""); btn.textContent=es.title;
-    btn.onclick=()=>switchEssayTab(i);
-    tabsEl.appendChild(btn);
-    const sec=document.createElement("div");
-    sec.className="essay-section"+(i===0?" active":""); sec.id="es-"+i;
-    let html="";
-    es.paras.forEach(p=>{
-      html+=`<div class="card"><div class="essay-block"><div class="essay-para">${p.text}</div><div class="anno-list">`;
-      p.annos.forEach(a=>{ html+=`<div class="anno-item"><div class="anno-dot dot-${a.color}"></div><div class="anno-text"><span class="anno-key">「${a.key}」</span>：${a.text}</div></div>`; });
-      html+=`</div><div class="skill-tags">`;
-      p.skills.forEach(sk=>{ html+=`<span class="skill-tag">🎯 ${sk}</span>`; });
-      html+=`</div></div></div>`;
-    });
-    sec.innerHTML=html; contEl.appendChild(sec);
-  });
+let _currentEssay = null;
+
+async function initEssay(){
+  const contEl = document.getElementById("essayContent");
+  contEl.innerHTML = '<div class="placeholder" style="padding:40px;text-align:center">📖 加载范文中…</div>';
+  await loadRandomEssay();
 }
-function switchEssayTab(idx){
-  document.querySelectorAll(".etab").forEach((b,i)=>b.classList.toggle("active",i===idx));
-  document.querySelectorAll(".essay-section").forEach((s,i)=>s.classList.toggle("active",i===idx));
-  addScore(2,"essay");
+
+async function loadRandomEssay(){
+  const contEl = document.getElementById("essayContent");
+  contEl.innerHTML = '<div class="placeholder" style="padding:40px;text-align:center">📖 加载范文中…</div>';
+  try {
+    const res = await fetch('https://essay-helper-api.ming-li8245.workers.dev/api/essays?random=1');
+    const json = await res.json();
+    if(json.success && json.data){
+      _currentEssay = json.data;
+      renderCurrentEssay();
+      addScore(2,"essay");
+      return;
+    }
+  } catch(e) {}
+  // 兜底：用本地 ESSAY_DATA 第一篇
+  if(typeof ESSAY_DATA !== 'undefined' && ESSAY_DATA.length > 0){
+    const idx = Math.floor(Math.random() * ESSAY_DATA.length);
+    renderLocalEssay(ESSAY_DATA[idx]);
+    addScore(2,"essay");
+  } else {
+    contEl.innerHTML = '<div class="placeholder">加载失败，请刷新重试</div>';
+  }
+}
+
+function renderCurrentEssay(){
+  if(!_currentEssay) return;
+  const contEl = document.getElementById("essayContent");
+  const es = _currentEssay;
+  // 更新标题栏
+  document.getElementById("essayTabTitle") && (document.getElementById("essayTabTitle").textContent = es.title);
+  let html = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div>
+      <span style="font-size:1.05rem;font-weight:700;color:var(--primary)">${es.title}</span>
+      <span style="margin-left:10px;font-size:.78rem;background:#f0ecff;color:var(--primary);padding:2px 10px;border-radius:10px">${es.type || ''}</span>
+    </div>
+    <button onclick="loadRandomEssay()" style="background:var(--primary);color:#fff;border:none;border-radius:10px;padding:6px 18px;font-size:.85rem;cursor:pointer;font-family:inherit">🔀 换一篇</button>
+  </div>`;
+  const paras = typeof es.paras === 'string' ? JSON.parse(es.paras) : es.paras;
+  paras.forEach(p => {
+    const annos = typeof p.annos === 'string' ? JSON.parse(p.annos) : (p.annos || []);
+    const skills = typeof p.skills === 'string' ? JSON.parse(p.skills) : (p.skills || []);
+    html += `<div class="card"><div class="essay-block"><div class="essay-para">${p.text}</div><div class="anno-list">`;
+    annos.forEach(a => { html += `<div class="anno-item"><div class="anno-dot dot-${a.color}"></div><div class="anno-text"><span class="anno-key">「${a.key}」</span>：${a.text}</div></div>`; });
+    html += `</div><div class="skill-tags">`;
+    skills.forEach(sk => { html += `<span class="skill-tag">🎯 ${sk}</span>`; });
+    html += `</div></div></div>`;
+  });
+  contEl.innerHTML = html;
+}
+
+function renderLocalEssay(es){
+  const contEl = document.getElementById("essayContent");
+  let html = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div>
+      <span style="font-size:1.05rem;font-weight:700;color:var(--primary)">${es.title}</span>
+    </div>
+    <button onclick="loadRandomEssay()" style="background:var(--primary);color:#fff;border:none;border-radius:10px;padding:6px 18px;font-size:.85rem;cursor:pointer;font-family:inherit">🔀 换一篇</button>
+  </div>`;
+  es.paras.forEach(p => {
+    html += `<div class="card"><div class="essay-block"><div class="essay-para">${p.text}</div><div class="anno-list">`;
+    p.annos.forEach(a => { html += `<div class="anno-item"><div class="anno-dot dot-${a.color}"></div><div class="anno-text"><span class="anno-key">「${a.key}」</span>：${a.text}</div></div>`; });
+    html += `</div><div class="skill-tags">`;
+    p.skills.forEach(sk => { html += `<span class="skill-tag">🎯 ${sk}</span>`; });
+    html += `</div></div></div>`;
+  });
+  contEl.innerHTML = html;
 }
 
 // ══════════════════════════════════════════

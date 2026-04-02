@@ -482,14 +482,10 @@ window.onload = function() {
 
   updateLoginButton();
 
-  // 原有的初始化
+  // 原有的初始化 — 一次性加载所有模块数据
   loadState();
   updateScoreBar();
-  initVocab();  // async，词库加载完后内部会调 initCategorySelects
-  initGuide();
-  initUpgrade();
-  initEssay();
-  initPractice();
+  initAllModules();  // 单次 API 请求聚合加载
   renderMyVocab();
 };
 
@@ -798,6 +794,65 @@ function spawnStars(n){
 function copyText(text){ navigator.clipboard.writeText(text).then(()=>showToast("✅ 已复制！")); }
 
 function escAttr(s){ return s.replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
+
+// ══════════════════════════════════════════
+//  聚合初始化：单次请求加载所有模块
+// ══════════════════════════════════════════
+async function initAllModules(){
+  try {
+    const res = await fetch(CLOUD_API_BASE + '/init-data');
+    const json = await res.json();
+    if(!json.success) throw new Error('init-data failed');
+    const d = json.data;
+
+    // 1. 词库
+    if(d.vocab && Object.keys(d.vocab).length > 0){
+      buildVocabUI(d.vocab);
+    } else {
+      await initVocab();
+    }
+
+    // 2. 作文引导
+    if(d.guideTemplates && Object.keys(d.guideTemplates).length > 0){
+      _guideData = d.guideTemplates;
+      renderGuideTypes();
+    }
+
+    // 3. 句子升级
+    if(d.upgradeExamples && d.upgradeExamples.length > 0) _upgradeExamples = d.upgradeExamples;
+    if(d.upgradeRules && d.upgradeRules.length > 0) _upgradeRules = d.upgradeRules;
+    renderUpgradeExamples();
+
+    // 4. 范文拆解
+    if(d.essay){
+      _currentEssay = d.essay;
+      renderCurrentEssay();
+    } else {
+      document.getElementById("essayContent").innerHTML = '<div class="placeholder" style="padding:40px;text-align:center">暂无范文</div>';
+    }
+
+    // 5. 写作练习
+    if(d.practiceTopic){
+      _currentPracticeTopic = d.practiceTopic;
+      document.getElementById("todTopic").textContent = "题目：" + d.practiceTopic.topic;
+      document.getElementById("todHint").textContent = "💡 " + (d.practiceTopic.hint || "");
+      document.getElementById("practiceText").value = "";
+      document.getElementById("wordCount").textContent = "已写 0 字";
+      document.getElementById("feedbackBox").style.display = "none";
+    } else {
+      document.getElementById("todTopic").textContent = "暂无练习题";
+      document.getElementById("todHint").textContent = "";
+    }
+
+  } catch(e){
+    console.error('聚合加载失败，回退到逐模块加载:', e);
+    initVocab();
+    initGuide();
+    initUpgrade();
+    initEssay();
+    initPractice();
+  }
+}
 
 // ══════════════════════════════════════════
 //  模块1：好词好句库

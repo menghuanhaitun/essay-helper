@@ -1173,45 +1173,71 @@ function renderMyVocab(){
 }
 
 // ══════════════════════════════════════════
-//  模块2：作文引导
+//  模块2：作文引导（D1 云端加载）
 // ══════════════════════════════════════════
 let selType=null, selTopic=null;
-function initGuide(){
-  const el=document.getElementById("guideTypes");
-  const icons={"写人":"👤 写人","写景":"🌿 写景","写事":"📅 写事","状物":"🎍 状物"};
-  Object.keys(GUIDE_DATA).forEach(t=>{
-    const btn=document.createElement("button");
-    btn.className="type-btn"; btn.innerHTML=icons[t];
-    btn.onclick=()=>selectGuideType(t,btn);
+let _guideData = {};
+
+async function initGuide(){
+  const el = document.getElementById("guideTypes");
+  el.innerHTML = '<div class="placeholder">加载中...</div>';
+  try {
+    const res = await fetch('https://essay-helper-api.ming-li8245.workers.dev/api/guide-templates');
+    const json = await res.json();
+    if(json.success) _guideData = json.data;
+  } catch(e) {}
+  // 兜底
+  if(Object.keys(_guideData).length === 0 && typeof GUIDE_DATA !== 'undefined'){
+    _guideData = GUIDE_DATA;
+  }
+  renderGuideTypes();
+}
+
+function renderGuideTypes(){
+  const el = document.getElementById("guideTypes");
+  el.innerHTML = "";
+  const icons = {"写人":"👤 写人","写景":"🌿 写景","写事":"📅 写事","状物":"🎍 状物"};
+  Object.keys(_guideData).forEach(t=>{
+    const btn = document.createElement("button");
+    btn.className = "type-btn";
+    btn.innerHTML = icons[t] || t;
+    btn.onclick = () => selectGuideType(t, btn);
     el.appendChild(btn);
   });
 }
-function selectGuideType(type,btn){
-  selType=type; selTopic=null;
-  document.querySelectorAll(".type-btn").forEach(b=>b.classList.remove("active"));
+
+function selectGuideType(type, btn){
+  selType = type; selTopic = null;
+  document.querySelectorAll(".type-btn").forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
-  document.getElementById("guide-result").style.display="none";
-  const grid=document.getElementById("topicGrid"); grid.innerHTML="";
-  GUIDE_DATA[type].topics.forEach(tp=>{
-    const d=document.createElement("div");
-    d.className="topic-item"; d.textContent=tp;
-    d.onclick=()=>{ selTopic=tp; document.querySelectorAll(".topic-item").forEach(x=>x.classList.remove("chosen")); d.classList.add("chosen"); };
+  document.getElementById("guide-result").style.display = "none";
+  const grid = document.getElementById("topicGrid"); grid.innerHTML = "";
+  _guideData[type].topics.forEach(tp => {
+    const d = document.createElement("div");
+    d.className = "topic-item"; d.textContent = tp;
+    d.onclick = () => {
+      selTopic = tp;
+      document.querySelectorAll(".topic-item").forEach(x => x.classList.remove("chosen"));
+      d.classList.add("chosen");
+    };
     grid.appendChild(d);
   });
-  document.getElementById("topicCard").style.display="block";
+  document.getElementById("topicCard").style.display = "block";
 }
+
 function generateFramework(){
   if(!selType)  { showToast("请先选择作文类型！"); return; }
   if(!selTopic) { showToast("请先选择一个题目！"); return; }
-  let html="";
-  GUIDE_DATA[selType].framework.forEach((step,i)=>{
-    html+=`<div class="fw-step"><div class="fw-num">${i+1}</div><div class="fw-content">
-      <h4>${step.title}</h4><p>${step.desc}</p><div class="fw-tips">`;
-    step.tips.forEach(t=>{ html+=`<span>💡 ${t}</span>`; });
-    html+=`</div></div></div>`;
+  let html = "";
+  _guideData[selType].framework.forEach((step, i) => {
+    html += `<div class="fw-step"><div class="fw-num">${i+1}</div><div class="fw-content">
+      <h4>${step.title}</h4><p>${step.desc || ''}</p><div class="fw-tips">`;
+    const tips = step.tips || [];
+    tips.forEach(t => { html += `<span>💡 ${t}</span>`; });
+    html += `</div></div></div>`;
   });
-  document.getElementById("frameworkBox").innerHTML=html;
-  document.getElementById("guide-result").style.display="block";
+  document.getElementById("frameworkBox").innerHTML = html;
+  document.getElementById("guide-result").style.display = "block";
   addScore(3,"guide");
   showToast("✅ 写作框架生成成功！");
   document.getElementById("guide-result").scrollIntoView({behavior:"smooth"});

@@ -687,12 +687,7 @@ saveState = function() {
   }
 };
 
-// 以下为兜底数据（API 不可用时使用），正式数据已迁移至 D1 数据库
-const GUIDE_DATA = {"写人":{topics:["我的朋友"],framework:[{title:"开头",desc:"引出人物",tips:["写外貌"]},{title:"正文",desc:"写事例",tips:["写动作"]},{title:"结尾",desc:"抒情",tips:["首尾呼应"]}]}};
-const UPGRADE_EXAMPLES = [{before:"今天天气很好。",after:[{tech:"比喻",s:"今天的阳光像金色的绸缎。"}]}];
-const UPGRADE_RULES = [{keys:["高兴","开心"],tips:[{tech:"动作写情",s:"我高兴得跳了起来。"}]}];
-const ESSAY_DATA = [{title:"范文示例",paras:[{text:"示例段落",annos:[],skills:["示例"]}],type:"示例"}];
-const PRACTICE_TOPICS = [{topic:"一件让我难忘的事",hint:"想想什么事让你印象特别深。"}];
+// 以下为勋章配置（前端本地数据，不需要云端）
 
 const BADGE_DATA = [
   {icon:"✏️",name:"写作起步",   cond:"完成第1次练习",  req:1,   type:"practice"},
@@ -1050,8 +1045,9 @@ async function initGuide(){
     if(json.success) _guideData = json.data;
   } catch(e) {}
   // 兜底
-  if(Object.keys(_guideData).length === 0 && typeof GUIDE_DATA !== 'undefined'){
-    _guideData = GUIDE_DATA;
+  if(Object.keys(_guideData).length === 0){
+    document.getElementById("guideTypes").innerHTML = '<div class="placeholder">加载失败，请刷新重试</div>';
+    return;
   }
   renderGuideTypes();
 }
@@ -1126,9 +1122,10 @@ async function initUpgrade(){
     if(exJson.success) _upgradeExamples = exJson.data;
     if(ruJson.success) _upgradeRules = ruJson.data;
   } catch(e) {
-    // 兜底使用本地数据
-    _upgradeExamples = UPGRADE_EXAMPLES ? UPGRADE_EXAMPLES.slice(0,5) : [];
-    _upgradeRules = UPGRADE_RULES || [];
+    // 加载失败
+    _upgradeExamples = [];
+    _upgradeRules = [];
+    document.getElementById("exampleSentences").innerHTML = '<div class="placeholder">加载失败，请刷新重试</div>';
   }
   renderUpgradeExamples();
 }
@@ -1234,14 +1231,8 @@ async function loadRandomEssay(){
       return;
     }
   } catch(e) {}
-  // 兜底：用本地 ESSAY_DATA 第一篇
-  if(typeof ESSAY_DATA !== 'undefined' && ESSAY_DATA.length > 0){
-    const idx = Math.floor(Math.random() * ESSAY_DATA.length);
-    renderLocalEssay(ESSAY_DATA[idx]);
-    addScore(2,"essay");
-  } else {
-    contEl.innerHTML = '<div class="placeholder">加载失败，请刷新重试</div>';
-  }
+  // 加载失败
+  contEl.innerHTML = '<div class="placeholder">加载失败，请刷新重试</div>';
 }
 
 function renderCurrentEssay(){
@@ -1265,24 +1256,6 @@ function renderCurrentEssay(){
     annos.forEach(a => { html += `<div class="anno-item"><div class="anno-dot dot-${a.color}"></div><div class="anno-text"><span class="anno-key">「${a.key}」</span>：${a.text}</div></div>`; });
     html += `</div><div class="skill-tags">`;
     skills.forEach(sk => { html += `<span class="skill-tag">🎯 ${sk}</span>`; });
-    html += `</div></div></div>`;
-  });
-  contEl.innerHTML = html;
-}
-
-function renderLocalEssay(es){
-  const contEl = document.getElementById("essayContent");
-  let html = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-    <div>
-      <span style="font-size:1.05rem;font-weight:700;color:var(--primary)">${es.title}</span>
-    </div>
-    <button onclick="loadRandomEssay()" style="background:var(--primary);color:#fff;border:none;border-radius:10px;padding:6px 18px;font-size:.85rem;cursor:pointer;font-family:inherit">🔀 换一篇</button>
-  </div>`;
-  es.paras.forEach(p => {
-    html += `<div class="card"><div class="essay-block"><div class="essay-para">${p.text}</div><div class="anno-list">`;
-    p.annos.forEach(a => { html += `<div class="anno-item"><div class="anno-dot dot-${a.color}"></div><div class="anno-text"><span class="anno-key">「${a.key}」</span>：${a.text}</div></div>`; });
-    html += `</div><div class="skill-tags">`;
-    p.skills.forEach(sk => { html += `<span class="skill-tag">🎯 ${sk}</span>`; });
     html += `</div></div></div>`;
   });
   contEl.innerHTML = html;
@@ -1324,15 +1297,8 @@ async function loadNewPracticeTopic(){
       return;
     }
   } catch(e) {}
-  // 兜底
-  if(typeof PRACTICE_TOPICS !== 'undefined' && PRACTICE_TOPICS.length > 0){
-    const t = PRACTICE_TOPICS[Math.floor(Math.random() * PRACTICE_TOPICS.length)];
-    _currentPracticeTopic = t;
-    document.getElementById("todTopic").textContent = "题目：" + t.topic;
-    document.getElementById("todHint").textContent = "💡 " + t.hint;
-  } else {
-    document.getElementById("todTopic").textContent = "加载失败，请刷新重试";
-  }
+  // 加载失败
+  document.getElementById("todTopic").textContent = "加载失败，请刷新重试";
   document.getElementById("practiceText").value = "";
   document.getElementById("wordCount").textContent = "已写 0 字";
   document.getElementById("feedbackBox").style.display = "none";

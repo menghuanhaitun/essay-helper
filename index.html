@@ -306,40 +306,6 @@ nav { display:flex; gap:8px; padding:14px 16px; overflow-x:auto; background:whit
     <div class="vtab-row" id="vocabTabs"></div>
   </div>
   <div id="vocabContent"></div>
-
-  <!-- 我的好词好句 -->
-  <div class="card">
-    <div class="card-title">
-      ✨ 我的好词好句
-      <span style="font-size:.78rem;color:#00b894;font-weight:600;margin-left:8px">每添加一条 +5 积分</span>
-    </div>
-    <p style="font-size:.85rem;color:var(--text-light);margin-bottom:14px">把你在书里、课文里发现的好词好句记下来吧！</p>
-
-    <!-- 添加词语 -->
-    <div style="margin-bottom:10px;font-size:.88rem;font-weight:700;color:var(--primary)">➕ 添加好词</div>
-    <div class="my-vocab-add" id="addWordRow">
-      <select id="newWordCat" style="border:2px solid #e0d9ff;border-radius:10px;padding:8px 12px;font-size:.88rem;outline:none;font-family:inherit;background:white">
-        <option value="">选择分类</option>
-      </select>
-      <input id="newWord" placeholder="好词（如：流连忘返）" maxlength="20">
-      <textarea id="newWordEg" placeholder="造句或例句（可选）" maxlength="80"></textarea>
-      <button class="add-btn" onclick="addMyWord()">收藏这个词 ＋5分</button>
-    </div>
-
-    <!-- 添加句子 -->
-    <div style="margin:14px 0 10px;font-size:.88rem;font-weight:700;color:var(--primary)">➕ 添加好句</div>
-    <div class="my-vocab-add" id="addSentRow">
-      <select id="newSentCat" style="border:2px solid #e0d9ff;border-radius:10px;padding:8px 12px;font-size:.88rem;outline:none;font-family:inherit;background:white;flex:0.5;min-width:90px">
-        <option value="">选择分类</option>
-      </select>
-      <input id="newSentType" placeholder="类型（如：比喻）" maxlength="8" style="flex:0.5;min-width:80px">
-      <textarea id="newSent" placeholder="把好句子写在这里……" maxlength="120" style="height:48px;flex:2"></textarea>
-      <button class="add-btn" onclick="addMySentence()">收藏这个句 ＋5分</button>
-    </div>
-
-    <!-- 我的收藏列表 -->
-    <div id="myVocabList" style="margin-top:16px"></div>
-  </div>
 </div>
 
 <!-- 模块2：作文引导 -->
@@ -522,6 +488,7 @@ async function handleLogin() {
     document.getElementById('loginModal').style.display = 'none';
     document.getElementById('syncBtn').style.display = 'block';
     updateLoginButton();
+    updateMyVocabTabName();
     showToast('✅ 登录成功！');
 
     // 从云端同步数据
@@ -666,6 +633,7 @@ function cloudLogoutNow() {
     cloudLogout();
     document.getElementById('syncBtn').style.display = 'none';
     updateLoginButton();
+    updateMyVocabTabName();
     showToast('👋 已退出登录');
   }
 }
@@ -886,6 +854,21 @@ function buildVocabUI(vocabData){
     contEl.appendChild(sec);
   });
 
+  // 追加「我的好词好句」标签
+  const myIdx = cats.length;
+  const myBtn = document.createElement("button");
+  myBtn.className = "vtab";
+  myBtn.id = "myVocabTab";
+  myBtn.textContent = getMyVocabTabName();
+  myBtn.onclick = ()=>switchVocabTab("my");
+  tabsEl.appendChild(myBtn);
+
+  const mySec = document.createElement("div");
+  mySec.className = "vocab-section";
+  mySec.id = "vs-my";
+  mySec.innerHTML = buildMyVocabHTML();
+  contEl.appendChild(mySec);
+
   // 词库渲染完毕，同步更新分类下拉选项
   initCategorySelects();
 }
@@ -990,21 +973,63 @@ function shuffle(array){
 
 let currentVocabIdx = 0;
 function switchVocabTab(cat){
-  // 直接用 DOM 里的 tab 按钮顺序找 idx，不依赖 VOCAB_DATA
   const tabs = Array.from(document.querySelectorAll(".vtab"));
-  const idx  = tabs.findIndex(b => b.textContent === cat);
+  let idx;
+  if(cat === "my"){
+    idx = tabs.length - 1; // "我的好词好句"总是最后一个
+  } else {
+    idx = tabs.findIndex(b => b.textContent === cat);
+  }
   if(idx === -1) return;
   currentVocabIdx = idx;
   tabs.forEach((b,i)=>b.classList.toggle("active",i===idx));
   document.querySelectorAll(".vocab-section").forEach((s,i)=>s.classList.toggle("active",i===idx));
+  // 切到"我的好词好句"时渲染最新列表
+  if(cat === "my") renderMyVocab();
+}
+
+// ── 我的好词好句（标签整合） ──
+function getMyVocabTabName(){
+  const u = localStorage.getItem('username');
+  return u ? u + '的好词好句' : '我的好词好句';
+}
+
+function updateMyVocabTabName(){
+  const tab = document.getElementById('myVocabTab');
+  if(tab) tab.textContent = getMyVocabTabName();
+}
+
+function buildMyVocabHTML(){
+  return `
+    <div style="font-size:.85rem;color:var(--text-light);margin-bottom:14px">把你在书里、课文里发现的好词好句记下来吧！<span style="font-size:.78rem;color:#00b894;font-weight:600;margin-left:8px">每添加一条 +5 积分</span></div>
+    <div style="margin-bottom:10px;font-size:.88rem;font-weight:700;color:var(--primary)">➕ 添加好词</div>
+    <div class="my-vocab-add" id="addWordRow">
+      <select id="newWordCat" style="border:2px solid #e0d9ff;border-radius:10px;padding:8px 12px;font-size:.88rem;outline:none;font-family:inherit;background:white">
+        <option value="">选择分类</option>
+      </select>
+      <input id="newWord" placeholder="好词（如：流连忘返）" maxlength="20">
+      <textarea id="newWordEg" placeholder="造句或例句（可选）" maxlength="80"></textarea>
+      <button class="add-btn" onclick="addMyWord()">收藏这个词 ＋5分</button>
+    </div>
+    <div style="margin:14px 0 10px;font-size:.88rem;font-weight:700;color:var(--primary)">➕ 添加好句</div>
+    <div class="my-vocab-add" id="addSentRow">
+      <select id="newSentCat" style="border:2px solid #e0d9ff;border-radius:10px;padding:8px 12px;font-size:.88rem;outline:none;font-family:inherit;background:white;flex:0.5;min-width:90px">
+        <option value="">选择分类</option>
+      </select>
+      <input id="newSentType" placeholder="类型（如：比喻）" maxlength="8" style="flex:0.5;min-width:80px">
+      <textarea id="newSent" placeholder="把好句子写在这里……" maxlength="120" style="height:48px;flex:2"></textarea>
+      <button class="add-btn" onclick="addMySentence()">收藏这个句 ＋5分</button>
+    </div>
+    <div id="myVocabList" style="margin-top:16px"></div>
+  `;
 }
 
 // ── 我的好词好句 ──
 // 初始化分类下拉菜单
 function initCategorySelects(){
-  // 从已渲染的 tab 按钮读分类名，不依赖 VOCAB_DATA
   const tabs = Array.from(document.querySelectorAll(".vtab"));
-  const cats = tabs.map(b => b.textContent);
+  // 排除最后一个（"我的好词好句"）
+  const cats = tabs.slice(0, -1).map(b => b.textContent);
   const wordSelect = document.getElementById("newWordCat");
   const sentSelect = document.getElementById("newSentCat");
   // 保留第一个"选择分类"占位 option，清除之前旧的分类 options

@@ -795,8 +795,7 @@ function copyText(text){ navigator.clipboard.writeText(text).then(()=>showToast(
 
 function escAttr(s){ return s.replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
 
-// Cloudflare Workers API 地址
-const CLOUD_API_BASE = 'https://essay-helper-api.ming-li8245.workers.dev/api';
+// CLOUD_API_BASE 已在 cloud-api.js 中定义
 
 // ══════════════════════════════════════════
 //  聚合初始化：单次请求加载所有模块

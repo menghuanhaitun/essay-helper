@@ -183,3 +183,74 @@ async function syncFromCloud() {
     return { success: false, message: error.message };
   }
 }
+
+// ══════════════════════════════════════════
+//  本地缓存系统（localStorage）
+// ══════════════════════════════════════════
+const CACHE_PREFIX = 'eh_cache_';
+const CACHE_DURATION = {
+  vocab:      30 * 24 * 3600 * 1000, // 30天
+  guide:      30 * 24 * 3600 * 1000, // 30天
+  upgrade:    30 * 24 * 3600 * 1000, // 30天
+  essay:      7  * 24 * 3600 * 1000, // 7天
+  practice:   7  * 24 * 3600 * 1000, // 7天
+  initData:   7  * 24 * 3600 * 1000, // 7天
+};
+
+// 读取缓存，过期返回 null
+function readCache(key) {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + key);
+    if (!raw) return null;
+    const item = JSON.parse(raw);
+    const maxAge = CACHE_DURATION[key] || CACHE_DURATION.initData;
+    if (Date.now() - item.time > maxAge) {
+      localStorage.removeItem(CACHE_PREFIX + key);
+      return null;
+    }
+    return item.data;
+  } catch (e) {
+    return null;
+  }
+}
+
+// 写入缓存
+function writeCache(key, data) {
+  try {
+    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ data, time: Date.now() }));
+  } catch (e) {
+    // localStorage 满了，静默失败
+    console.warn('缓存写入失败:', e);
+  }
+}
+
+// 清除所有应用缓存（保留用户登录状态和个人数据）
+function clearAllCache() {
+  const keysToRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith(CACHE_PREFIX)) {
+      keysToRemove.push(k);
+    }
+  }
+  keysToRemove.forEach(k => localStorage.removeItem(k));
+  return keysToRemove.length;
+}
+
+// 获取缓存信息（用于调试/展示）
+function getCacheInfo() {
+  const info = {};
+  Object.keys(CACHE_DURATION).forEach(key => {
+    const raw = localStorage.getItem(CACHE_PREFIX + key);
+    if (raw) {
+      try {
+        const item = JSON.parse(raw);
+        const maxAge = CACHE_DURATION[key];
+        const remaining = Math.max(0, maxAge - (Date.now() - item.time));
+        const days = Math.ceil(remaining / (24 * 3600 * 1000));
+        info[key] = { size: (raw.length / 1024).toFixed(1) + 'KB', remaining: days + '天' };
+      } catch (e) {}
+    }
+  });
+  return info;
+}

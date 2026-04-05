@@ -612,6 +612,7 @@ function showSyncMenu() {
     menuEl.innerHTML = `
       <button onclick="syncToCloudNow()">☁️ 上传到云端</button>
       <button onclick="syncFromCloudNow()">☁️ 从云端下载</button>
+      <button onclick="handleClearCache()" style="border-top:1px solid #eee;margin-top:4px;padding-top:8px">🗑️ 清除缓存</button>
       <button onclick="cloudLogoutNow()">🚪 退出登录</button>
     `;
     document.body.appendChild(menuEl);
@@ -643,6 +644,17 @@ async function syncFromCloudNow() {
     updateScoreBar();
   } else {
     showToast('❌ ' + result.message);
+  }
+}
+
+// 清除缓存
+function handleClearCache(){
+  document.getElementById('syncMenu').style.display = 'none';
+  const count = clearAllCache();
+  if(count > 0){
+    showToast('🗑️ 已清除 ' + count + ' 条缓存，下次打开将重新加载');
+  } else {
+    showToast('ℹ️ 没有需要清除的缓存');
   }
 }
 
@@ -789,63 +801,92 @@ function escAttr(s){ return s.replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
 //  聚合初始化：单次请求加载所有模块
 // ══════════════════════════════════════════
 async function initAllModules(){
+  // ===== 第1步：先尝试读取缓存，立即渲染 =====
+  const cachedInit = readCache('initData');
+  if(cachedInit){
+    applyInitData(cachedInit);
+    // 后台静默更新（不阻塞用户）
+    fetchAndUpdateCache();
+  } else {
+    // 没有缓存，正常加载（带 loading 状态）
+    await fetchAndUpdateCache();
+  }
+}
+
+// 应用聚合数据到各模块
+function applyInitData(d){
+  // 1. 词库
+  if(d.vocab && Object.keys(d.vocab).length > 0){
+    buildVocabUI(d.vocab);
+    writeCache('vocab', d.vocab);
+  } else if(typeof VOCAB_DATA !== 'undefined') {
+    buildVocabUI(VOCAB_DATA);
+  }
+
+  // 2. 作文引导
+  if(d.guideTemplates && Object.keys(d.guideTemplates).length > 0){
+    _guideData = d.guideTemplates;
+    renderGuideTypes();
+    writeCache('guide', d.guideTemplates);
+  }
+
+  // 3. 句子升级
+  if(d.upgradeExamples && d.upgradeExamples.length > 0){
+    _upgradeExamples = d.upgradeExamples;
+    writeCache('upgrade', d.upgradeExamples);
+  }
+  if(d.upgradeRules && d.upgradeRules.length > 0){
+    _upgradeRules = d.upgradeRules;
+  }
+  renderUpgradeExamples();
+
+  // 4. 范文拆解
+  if(d.essay){
+    _currentEssay = d.essay;
+    renderCurrentEssay();
+    writeCache('essay', d.essay);
+  } else {
+    document.getElementById("essayContent").innerHTML = '<div class="placeholder" style="padding:40px;text-align:center">暂无范文</div>';
+  }
+
+  // 5. 写作练习
+  if(d.practiceTopic){
+    _currentPracticeTopic = d.practiceTopic;
+    document.getElementById("todTopic").textContent = "题目：" + d.practiceTopic.topic;
+    document.getElementById("todHint").textContent = "💡 " + (d.practiceTopic.hint || "");
+    document.getElementById("practiceText").value = "";
+    document.getElementById("wordCount").textContent = "已写 0 字";
+    document.getElementById("feedbackBox").style.display = "none";
+    writeCache('practice', d.practiceTopic);
+  } else {
+    document.getElementById("todTopic").textContent = "暂无练习题";
+    document.getElementById("todHint").textContent = "";
+  }
+}
+
+// 请求云端并静默更新缓存
+async function fetchAndUpdateCache(){
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     const res = await fetch(CLOUD_API_BASE + '/init-data', { signal: controller.signal });
     clearTimeout(timeoutId);
     const json = await res.json();
     if(!json.success) throw new Error('init-data failed');
-    const d = json.data;
 
-    // 1. 词库
-    if(d.vocab && Object.keys(d.vocab).length > 0){
-      buildVocabUI(d.vocab);
-    } else {
-      await initVocab();
-    }
-
-    // 2. 作文引导
-    if(d.guideTemplates && Object.keys(d.guideTemplates).length > 0){
-      _guideData = d.guideTemplates;
-      renderGuideTypes();
-    }
-
-    // 3. 句子升级
-    if(d.upgradeExamples && d.upgradeExamples.length > 0) _upgradeExamples = d.upgradeExamples;
-    if(d.upgradeRules && d.upgradeRules.length > 0) _upgradeRules = d.upgradeRules;
-    renderUpgradeExamples();
-
-    // 4. 范文拆解
-    if(d.essay){
-      _currentEssay = d.essay;
-      renderCurrentEssay();
-    } else {
-      document.getElementById("essayContent").innerHTML = '<div class="placeholder" style="padding:40px;text-align:center">暂无范文</div>';
-    }
-
-    // 5. 写作练习
-    if(d.practiceTopic){
-      _currentPracticeTopic = d.practiceTopic;
-      document.getElementById("todTopic").textContent = "题目：" + d.practiceTopic.topic;
-      document.getElementById("todHint").textContent = "💡 " + (d.practiceTopic.hint || "");
-      document.getElementById("practiceText").value = "";
-      document.getElementById("wordCount").textContent = "已写 0 字";
-      document.getElementById("feedbackBox").style.display = "none";
-    } else {
-      document.getElementById("todTopic").textContent = "暂无练习题";
-      document.getElementById("todHint").textContent = "";
-    }
-
+    writeCache('initData', json.data);
+    applyInitData(json.data);
   } catch(e){
-    console.error('聚合加载失败，回退到逐模块加载:', e);
-    // 显示加载提示
-    document.querySelector('#mod-vocab .card .card-title') && (document.querySelector('#mod-vocab .card .card-title').textContent = '📚 好词好句库 — 加载中...');
-    initVocab();
-    initGuide();
-    initUpgrade();
-    initEssay();
-    initPractice();
+    console.warn('后台更新失败，继续使用缓存:', e.message);
+    // 如果没有缓存才走到这里，需要回退到逐模块加载
+    if(!readCache('initData')){
+      document.querySelector('#mod-vocab .card .card-title') && (document.querySelector('#mod-vocab .card .card-title').textContent = '📚 好词好句库 — 加载中...');
+      initVocab();
+      initGuide();
+      initUpgrade();
+      initEssay();
+      initPractice();
+    }
   }
 }
 
@@ -900,25 +941,47 @@ function buildVocabUI(vocabData){
 
 async function initVocab(){
   const contEl = document.getElementById("vocabContent");
-  contEl.innerHTML = '<p style="text-align:center;padding:32px;color:var(--text-light)">⏳ 正在加载词库…</p>';
 
+  // 先尝试读取缓存
+  const cachedVocab = readCache('vocab');
+  if(cachedVocab){
+    buildVocabUI(cachedVocab);
+    return; // 有缓存直接用，不走网络
+  }
+
+  // 无缓存，尝试本地 fallback
+  if (typeof VOCAB_DATA !== 'undefined') {
+    buildVocabUI(VOCAB_DATA);
+    // 后台静默请求云端更新
+    fetchVocabFromCloud();
+    return;
+  }
+
+  // 既没缓存也没本地数据，请求云端
+  contEl.innerHTML = '<p style="text-align:center;padding:32px;color:var(--text-light)">⏳ 正在加载词库…</p>';
   try {
     const res = await fetch(CLOUD_API_BASE + '/vocab-library');
     const json = await res.json();
     if (json.success && json.data && Object.keys(json.data).length > 0) {
       buildVocabUI(json.data);
+      writeCache('vocab', json.data);
       return;
     }
-  } catch(e) {
-    // 网络失败，走兜底
-  }
+  } catch(e) {}
+  contEl.innerHTML = '<p style="text-align:center;padding:32px;color:#e17055">⚠️ 词库加载失败</p><p style="text-align:center"><button onclick="initVocab()" style="padding:8px 20px;border-radius:10px;border:none;background:var(--primary);color:white;cursor:pointer;font-size:.85rem">🔄 重新加载</button></p>';
+}
 
-  // 兜底：使用本地 vocab-data.js
-  if (typeof VOCAB_DATA !== 'undefined') {
-    buildVocabUI(VOCAB_DATA);
-  } else {
-    contEl.innerHTML = '<p style="text-align:center;padding:32px;color:#e17055">⚠️ 词库加载失败</p><p style="text-align:center"><button onclick="initVocab()" style="padding:8px 20px;border-radius:10px;border:none;background:var(--primary);color:white;cursor:pointer;font-size:.85rem">🔄 重新加载</button></p>';
-  }
+// 后台静默更新词库
+function fetchVocabFromCloud(){
+  fetch(CLOUD_API_BASE + '/vocab-library')
+    .then(r => r.json())
+    .then(json => {
+      if(json.success && json.data && Object.keys(json.data).length > 0){
+        writeCache('vocab', json.data);
+        buildVocabUI(json.data);
+      }
+    })
+    .catch(() => {}); // 静默失败
 }
 
 // 渲染单个分类的内容（随机6个词+6个句）
@@ -1146,19 +1209,45 @@ let selType=null, selTopic=null;
 let _guideData = {};
 
 async function initGuide(){
+  // 先尝试读取缓存
+  const cached = readCache('guide');
+  if(cached && Object.keys(cached).length > 0){
+    _guideData = cached;
+    renderGuideTypes();
+    fetchGuideFromCloud(); // 后台静默更新
+    return;
+  }
+
+  // 无缓存，从云端加载
   const el = document.getElementById("guideTypes");
   el.innerHTML = '<div class="placeholder">加载中...</div>';
   try {
     const res = await fetch(CLOUD_API_BASE + '/guide-templates');
     const json = await res.json();
-    if(json.success) _guideData = json.data;
+    if(json.success) {
+      _guideData = json.data;
+      writeCache('guide', json.data);
+    }
   } catch(e) {}
-  // 兜底
   if(Object.keys(_guideData).length === 0){
     document.getElementById("guideTypes").innerHTML = '<div class="placeholder">加载失败<button onclick="initGuide()" style="margin-top:10px;padding:6px 16px;border-radius:8px;border:none;background:var(--primary);color:white;cursor:pointer;font-size:.82rem;display:block;margin-left:auto;margin-right:auto">🔄 重新加载</button></div>';
     return;
   }
   renderGuideTypes();
+}
+
+// 后台静默更新引导模板
+function fetchGuideFromCloud(){
+  fetch(CLOUD_API_BASE + '/guide-templates')
+    .then(r => r.json())
+    .then(json => {
+      if(json.success && json.data && Object.keys(json.data).length > 0){
+        _guideData = json.data;
+        writeCache('guide', json.data);
+        renderGuideTypes();
+      }
+    })
+    .catch(() => {});
 }
 
 function renderGuideTypes(){
@@ -1219,6 +1308,16 @@ let _upgradeRules = [];
 let _upgradeGroupIdx = 0; // 当前展示的示例组起始索引
 
 async function initUpgrade(){
+  // 先尝试读取缓存
+  const cachedExamples = readCache('upgrade');
+  if(cachedExamples && cachedExamples.length > 0){
+    _upgradeExamples = cachedExamples;
+    renderUpgradeExamples();
+    fetchUpgradeFromCloud(); // 后台静默更新
+    return;
+  }
+
+  // 无缓存，从云端加载
   const el = document.getElementById("exampleSentences");
   el.innerHTML = '<div class="placeholder">加载示例中…</div>';
   try {
@@ -1228,15 +1327,30 @@ async function initUpgrade(){
     ]);
     const exJson = await exRes.json();
     const ruJson = await ruRes.json();
-    if(exJson.success) _upgradeExamples = exJson.data;
+    if(exJson.success) {
+      _upgradeExamples = exJson.data;
+      writeCache('upgrade', exJson.data);
+    }
     if(ruJson.success) _upgradeRules = ruJson.data;
   } catch(e) {
-    // 加载失败
-    _upgradeExamples = [];
-    _upgradeRules = [];
     document.getElementById("exampleSentences").innerHTML = '<div class="placeholder">加载失败<button onclick="initUpgrade()" style="margin-top:10px;padding:6px 16px;border-radius:8px;border:none;background:var(--primary);color:white;cursor:pointer;font-size:.82rem;display:block;margin-left:auto;margin-right:auto">🔄 重新加载</button></div>';
   }
   renderUpgradeExamples();
+}
+
+// 后台静默更新升级示例
+function fetchUpgradeFromCloud(){
+  Promise.all([
+    fetch(CLOUD_API_BASE + '/upgrade-examples?limit=15').then(r => r.json()),
+    fetch(CLOUD_API_BASE + '/upgrade-rules').then(r => r.json())
+  ]).then(([exJson, ruJson]) => {
+    if(exJson.success && exJson.data && exJson.data.length > 0){
+      _upgradeExamples = exJson.data;
+      writeCache('upgrade', exJson.data);
+      renderUpgradeExamples();
+    }
+    if(ruJson.success && ruJson.data) _upgradeRules = ruJson.data;
+  }).catch(() => {});
 }
 
 function renderUpgradeExamples(){
@@ -1278,9 +1392,16 @@ async function changeUpgradeGroup(){
     const res = await fetch(CLOUD_API_BASE + '/upgrade-examples?limit=15', { signal: controller.signal });
     clearTimeout(timeoutId);
     const json = await res.json();
-    if(json.success) _upgradeExamples = json.data;
+    if(json.success && json.data) {
+      _upgradeExamples = json.data;
+      writeCache('upgrade', json.data);
+    }
   } catch(e) {}
+  // 即使失败也用现有数据（可能是缓存里的）
   renderUpgradeExamples();
+  if(_upgradeExamples.length === 0){
+    showToast('⚠️ 网络不畅，请稍后再试');
+  }
 }
 
 function upgradeSentence(){
@@ -1349,6 +1470,14 @@ function setEssayCategory(cat, btnEl){
 
 async function loadRandomEssay(){
   const contEl = document.getElementById("essayContent");
+
+  // 如果已有缓存的范文，先立即展示（用户快速切换时的体验）
+  const cachedEssay = readCache('essay');
+  if(!_currentEssay && cachedEssay){
+    _currentEssay = cachedEssay;
+    renderCurrentEssay();
+  }
+
   contEl.innerHTML = '<div class="placeholder" style="padding:40px;text-align:center">📖 加载范文中…</div>';
   try {
     const controller = new AbortController();
@@ -1361,12 +1490,19 @@ async function loadRandomEssay(){
     if(json.success && json.data){
       _currentEssay = json.data;
       renderCurrentEssay();
+      writeCache('essay', json.data);
       addScore(2,"essay");
       return;
     }
   } catch(e) {}
-  // 加载失败
-  contEl.innerHTML = '<div class="placeholder" style="padding:40px;text-align:center">📖 加载失败<button onclick="loadRandomEssay()" style="margin-top:10px;padding:6px 16px;border-radius:8px;border:none;background:var(--primary);color:white;cursor:pointer;font-size:.82rem;display:block;margin-left:auto;margin-right:auto">🔄 重新加载</button></div>';
+  // 加载失败：如果有缓存的范文就回退显示
+  if(cachedEssay){
+    _currentEssay = cachedEssay;
+    renderCurrentEssay();
+    showToast('📖 网络不畅，显示上次加载的范文');
+  } else {
+    contEl.innerHTML = '<div class="placeholder" style="padding:40px;text-align:center">📖 加载失败<button onclick="loadRandomEssay()" style="margin-top:10px;padding:6px 16px;border-radius:8px;border:none;background:var(--primary);color:white;cursor:pointer;font-size:.82rem;display:block;margin-left:auto;margin-right:auto">🔄 重新加载</button></div>';
+  }
 }
 
 function renderCurrentEssay(){
@@ -1415,6 +1551,17 @@ function setPracticeCategory(cat, btn){
 }
 
 async function loadNewPracticeTopic(){
+  // 如果已有缓存的练习题，先立即展示
+  const cachedTopic = readCache('practice');
+  if(!_currentPracticeTopic && cachedTopic){
+    _currentPracticeTopic = cachedTopic;
+    document.getElementById("todTopic").textContent = "题目：" + cachedTopic.topic;
+    document.getElementById("todHint").textContent = "💡 " + (cachedTopic.hint || "");
+    document.getElementById("practiceText").value = "";
+    document.getElementById("wordCount").textContent = "已写 0 字";
+    document.getElementById("feedbackBox").style.display = "none";
+  }
+
   document.getElementById("todTopic").textContent = "加载中...";
   try {
     const controller = new AbortController();
@@ -1431,12 +1578,20 @@ async function loadNewPracticeTopic(){
       document.getElementById("practiceText").value = "";
       document.getElementById("wordCount").textContent = "已写 0 字";
       document.getElementById("feedbackBox").style.display = "none";
+      writeCache('practice', json.data);
       return;
     }
   } catch(e) {}
-  // 加载失败
-  document.getElementById("todTopic").textContent = "加载失败";
-  document.getElementById("todHint").innerHTML = '<button onclick="loadNewPracticeTopic()" style="padding:6px 16px;border-radius:8px;border:none;background:var(--primary);color:white;cursor:pointer;font-size:.82rem">🔄 重新加载</button>';
+  // 加载失败：如果有缓存就回退显示
+  if(cachedTopic){
+    _currentPracticeTopic = cachedTopic;
+    document.getElementById("todTopic").textContent = "题目：" + cachedTopic.topic;
+    document.getElementById("todHint").textContent = "💡 " + (cachedTopic.hint || "");
+    showToast('📅 网络不畅，显示上次加载的题目');
+  } else {
+    document.getElementById("todTopic").textContent = "加载失败";
+    document.getElementById("todHint").innerHTML = '<button onclick="loadNewPracticeTopic()" style="padding:6px 16px;border-radius:8px;border:none;background:var(--primary);color:white;cursor:pointer;font-size:.82rem">🔄 重新加载</button>';
+  }
   document.getElementById("wordCount").textContent = "已写 0 字";
   document.getElementById("feedbackBox").style.display = "none";
 }

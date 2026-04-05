@@ -1,26 +1,51 @@
 // 云端同步 API 客户端 - 使用 Cloudflare Workers
 const CLOUD_API_BASE = 'https://essay-helper-api.ming-li8245.workers.dev/api';
 
+// 请求配置
+const API_TIMEOUT = 8000;   // 8秒超时
+const MAX_RETRIES = 2;      // 最多重试2次
+
 // 检查是否登录
 function isLoggedIn() {
   return !!(localStorage.getItem('userId') && localStorage.getItem('username'));
 }
 
-// 通用请求函数
+// 带超时和重试的通用请求函数
 async function apiRequest(endpoint, method, body) {
-  const options = {
-    method: method,
-    headers: { 'Content-Type': 'application/json' }
-  };
-  if (body) options.body = JSON.stringify(body);
+  let lastError;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
-  const response = await fetch(CLOUD_API_BASE + endpoint, options);
-  const data = await response.json();
+    try {
+      const options = {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal
+      };
+      if (body) options.body = JSON.stringify(body);
 
-  if (!response.ok) {
-    throw new Error(data.error || '请求失败');
+      const response = await fetch(CLOUD_API_BASE + endpoint, options);
+      clearTimeout(timeoutId);
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || '请求失败');
+      }
+      return data;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      lastError = error;
+      if (error.name === 'AbortError') {
+        lastError = new Error('请求超时，请检查网络');
+      }
+      // 最后一次重试失败才抛出
+      if (attempt < MAX_RETRIES) {
+        await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+      }
+    }
   }
-  return data;
+  throw lastError;
 }
 
 // 注册
@@ -95,7 +120,7 @@ async function cloudDeleteData(id) {
   return await apiRequest('/user-data/' + id + '?userId=' + userId, 'DELETE');
 }
 
-// 同步本地数据到云端
+// 同步本地数据到云端（批量：1次请求替代 N 次串行请求）
 async function syncToCloud() {
   if (!isLoggedIn()) {
     return { success: false, message: '未登录' };
@@ -104,34 +129,12 @@ async function syncToCloud() {
   try {
     const userId = localStorage.getItem('userId');
 
-    // 先清除旧数据，再上传新数据（通过覆盖方式）
-    // 保存积分
-    await apiRequest('/user-data', 'POST', {
+    await apiRequest('/user-data/sync', 'POST', {
       userId,
-      dataType: 'score',
-      dataValue: JSON.stringify({ totalScore: state.totalScore }),
-      category: null
+      score: { totalScore: state.totalScore },
+      myWords: state.myWords.map(w => ({ w: w.w, eg: w.eg || '', cat: w.cat || null })),
+      mySentences: state.mySentences.map(s => ({ s: s.s, type: s.type || '', cat: s.cat || null }))
     });
-
-    // 保存好词
-    for (const word of state.myWords) {
-      await apiRequest('/user-data', 'POST', {
-        userId,
-        dataType: 'my_word',
-        dataValue: JSON.stringify({ w: word.w }),
-        category: word.cat || null
-      });
-    }
-
-    // 保存好句
-    for (const sent of state.mySentences) {
-      await apiRequest('/user-data', 'POST', {
-        userId,
-        dataType: 'my_sentence',
-        dataValue: JSON.stringify({ s: sent.s }),
-        category: sent.cat || null
-      });
-    }
 
     return { success: true, message: '同步成功！' };
   } catch (error) {

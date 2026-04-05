@@ -483,6 +483,12 @@ async function handleLogin() {
     return;
   }
 
+  const btn = document.querySelector('#loginForm .login-btn');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '登录中...';
+  btn.style.opacity = '0.6';
+
   try {
     await cloudLogin(username, password);
     document.getElementById('loginModal').style.display = 'none';
@@ -498,6 +504,10 @@ async function handleLogin() {
     }
   } catch (error) {
     showToast('❌ ' + error.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origText;
+    btn.style.opacity = '1';
   }
 }
 
@@ -522,6 +532,12 @@ async function handleRegister() {
     return;
   }
 
+  const btn = document.querySelector('#registerForm .login-btn');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '注册中...';
+  btn.style.opacity = '0.6';
+
   try {
     await cloudRegister(username, password);
     document.getElementById('loginModal').style.display = 'none';
@@ -530,6 +546,10 @@ async function handleRegister() {
     showToast('✅ 注册成功！欢迎加入！');
   } catch (error) {
     showToast('❌ ' + error.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origText;
+    btn.style.opacity = '1';
   }
 }
 
@@ -602,8 +622,7 @@ function showSyncMenu() {
 // 上传到云端
 async function syncToCloudNow() {
   document.getElementById('syncMenu').style.display = 'none';
-  showToast('正在上传...', 1000);
-
+  showToast('⏳ 正在上传数据...');
   const result = await syncToCloud();
   if (result.success) {
     showToast('✅ ' + result.message);
@@ -615,12 +634,13 @@ async function syncToCloudNow() {
 // 从云端下载
 async function syncFromCloudNow() {
   document.getElementById('syncMenu').style.display = 'none';
-  showToast('正在下载...', 1000);
+  showToast('⏳ 正在下载数据...');
 
   const result = await syncFromCloud();
   if (result.success) {
     showToast('✅ ' + result.message);
     renderMyVocab();
+    updateScoreBar();
   } else {
     showToast('❌ ' + result.message);
   }
@@ -770,7 +790,10 @@ function escAttr(s){ return s.replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
 // ══════════════════════════════════════════
 async function initAllModules(){
   try {
-    const res = await fetch(CLOUD_API_BASE + '/init-data');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+    const res = await fetch(CLOUD_API_BASE + '/init-data', { signal: controller.signal });
+    clearTimeout(timeoutId);
     const json = await res.json();
     if(!json.success) throw new Error('init-data failed');
     const d = json.data;
@@ -816,6 +839,8 @@ async function initAllModules(){
 
   } catch(e){
     console.error('聚合加载失败，回退到逐模块加载:', e);
+    // 显示加载提示
+    document.querySelector('#mod-vocab .card .card-title') && (document.querySelector('#mod-vocab .card .card-title').textContent = '📚 好词好句库 — 加载中...');
     initVocab();
     initGuide();
     initUpgrade();
@@ -892,7 +917,7 @@ async function initVocab(){
   if (typeof VOCAB_DATA !== 'undefined') {
     buildVocabUI(VOCAB_DATA);
   } else {
-    contEl.innerHTML = '<p style="text-align:center;padding:32px;color:#e17055">⚠️ 词库加载失败，请刷新重试</p>';
+    contEl.innerHTML = '<p style="text-align:center;padding:32px;color:#e17055">⚠️ 词库加载失败</p><p style="text-align:center"><button onclick="initVocab()" style="padding:8px 20px;border-radius:10px;border:none;background:var(--primary);color:white;cursor:pointer;font-size:.85rem">🔄 重新加载</button></p>';
   }
 }
 
@@ -1130,7 +1155,7 @@ async function initGuide(){
   } catch(e) {}
   // 兜底
   if(Object.keys(_guideData).length === 0){
-    document.getElementById("guideTypes").innerHTML = '<div class="placeholder">加载失败，请刷新重试</div>';
+    document.getElementById("guideTypes").innerHTML = '<div class="placeholder">加载失败<button onclick="initGuide()" style="margin-top:10px;padding:6px 16px;border-radius:8px;border:none;background:var(--primary);color:white;cursor:pointer;font-size:.82rem;display:block;margin-left:auto;margin-right:auto">🔄 重新加载</button></div>';
     return;
   }
   renderGuideTypes();
@@ -1209,7 +1234,7 @@ async function initUpgrade(){
     // 加载失败
     _upgradeExamples = [];
     _upgradeRules = [];
-    document.getElementById("exampleSentences").innerHTML = '<div class="placeholder">加载失败，请刷新重试</div>';
+    document.getElementById("exampleSentences").innerHTML = '<div class="placeholder">加载失败<button onclick="initUpgrade()" style="margin-top:10px;padding:6px 16px;border-radius:8px;border:none;background:var(--primary);color:white;cursor:pointer;font-size:.82rem;display:block;margin-left:auto;margin-right:auto">🔄 重新加载</button></div>';
   }
   renderUpgradeExamples();
 }
@@ -1248,7 +1273,10 @@ async function changeUpgradeGroup(){
   const el = document.getElementById("exampleSentences");
   el.innerHTML = '<div class="placeholder">换一组中…</div>';
   try {
-    const res = await fetch(CLOUD_API_BASE + '/upgrade-examples?limit=15');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(CLOUD_API_BASE + '/upgrade-examples?limit=15', { signal: controller.signal });
+    clearTimeout(timeoutId);
     const json = await res.json();
     if(json.success) _upgradeExamples = json.data;
   } catch(e) {}
@@ -1323,9 +1351,12 @@ async function loadRandomEssay(){
   const contEl = document.getElementById("essayContent");
   contEl.innerHTML = '<div class="placeholder" style="padding:40px;text-align:center">📖 加载范文中…</div>';
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     let apiUrl = CLOUD_API_BASE + '/essays?random=1';
     if(_essayCategory) apiUrl += '&type=' + encodeURIComponent(_essayCategory);
-    const res = await fetch(apiUrl);
+    const res = await fetch(apiUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
     const json = await res.json();
     if(json.success && json.data){
       _currentEssay = json.data;
@@ -1335,7 +1366,7 @@ async function loadRandomEssay(){
     }
   } catch(e) {}
   // 加载失败
-  contEl.innerHTML = '<div class="placeholder">加载失败，请刷新重试</div>';
+  contEl.innerHTML = '<div class="placeholder" style="padding:40px;text-align:center">📖 加载失败<button onclick="loadRandomEssay()" style="margin-top:10px;padding:6px 16px;border-radius:8px;border:none;background:var(--primary);color:white;cursor:pointer;font-size:.82rem;display:block;margin-left:auto;margin-right:auto">🔄 重新加载</button></div>';
 }
 
 function renderCurrentEssay(){
@@ -1386,9 +1417,12 @@ function setPracticeCategory(cat, btn){
 async function loadNewPracticeTopic(){
   document.getElementById("todTopic").textContent = "加载中...";
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     let url = CLOUD_API_BASE + '/practice-topics?random=1';
     if(_practiceCategory) url += '&category=' + encodeURIComponent(_practiceCategory);
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
     const json = await res.json();
     if(json.success && json.data){
       _currentPracticeTopic = json.data;
@@ -1401,8 +1435,8 @@ async function loadNewPracticeTopic(){
     }
   } catch(e) {}
   // 加载失败
-  document.getElementById("todTopic").textContent = "加载失败，请刷新重试";
-  document.getElementById("practiceText").value = "";
+  document.getElementById("todTopic").textContent = "加载失败";
+  document.getElementById("todHint").innerHTML = '<button onclick="loadNewPracticeTopic()" style="padding:6px 16px;border-radius:8px;border:none;background:var(--primary);color:white;cursor:pointer;font-size:.82rem">🔄 重新加载</button>';
   document.getElementById("wordCount").textContent = "已写 0 字";
   document.getElementById("feedbackBox").style.display = "none";
 }

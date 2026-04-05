@@ -1,0 +1,8 @@
+# Workers API（独立部署，不走 Pages）
+workers-api/
+
+# 导出工具脚本（本地运行）
+export-data.js
+
+# node_modules
+node_modules/

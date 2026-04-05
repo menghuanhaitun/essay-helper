@@ -420,6 +420,7 @@ nav { display:flex; gap:8px; padding:14px 16px; overflow-x:auto; background:whit
 
 <!-- 加载独立词库文件 -->
 <script src="vocab-data.js"></script>
+<script src="data-cache.js"></script>
 <script src="cloud-api.js"></script>
 
 <script>
@@ -801,15 +802,71 @@ function escAttr(s){ return s.replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
 //  聚合初始化：单次请求加载所有模块
 // ══════════════════════════════════════════
 async function initAllModules(){
-  // ===== 第1步：先尝试读取缓存，立即渲染 =====
+  // ===== 优先级：localStorage缓存 > BUILTIN_DATA > 云端请求 =====
   const cachedInit = readCache('initData');
+
   if(cachedInit){
+    // 有 localStorage 缓存，直接用（最快）
     applyInitData(cachedInit);
-    // 后台静默更新（不阻塞用户）
-    fetchAndUpdateCache();
+    fetchAndUpdateCache(); // 后台静默更新
+  } else if(typeof BUILTIN_DATA !== 'undefined'){
+    // 没有 localStorage 缓存，但有内置数据（首次在平板打开/清了缓存）
+    applyBuiltInData();
+    fetchAndUpdateCache(); // 后台静默更新
   } else {
-    // 没有缓存，正常加载（带 loading 状态）
+    // 什么都没有（极端情况），直接请求云端
     await fetchAndUpdateCache();
+  }
+}
+
+// 应用内置数据（data-cache.js）到各模块
+function applyBuiltInData(){
+  if(!BUILTIN_DATA) return;
+  const d = BUILTIN_DATA;
+
+  // 1. 词库
+  if(d.vocab && Object.keys(d.vocab).length > 0){
+    buildVocabUI(d.vocab);
+  } else if(typeof VOCAB_DATA !== 'undefined') {
+    buildVocabUI(VOCAB_DATA);
+  }
+
+  // 2. 作文引导
+  if(d.guideTemplates && Object.keys(d.guideTemplates).length > 0){
+    _guideData = d.guideTemplates;
+    renderGuideTypes();
+  }
+
+  // 3. 句子升级
+  if(d.upgradeExamples && d.upgradeExamples.length > 0){
+    _upgradeExamples = d.upgradeExamples;
+  }
+  if(d.upgradeRules && d.upgradeRules.length > 0){
+    _upgradeRules = d.upgradeRules;
+  }
+  renderUpgradeExamples();
+
+  // 4. 范文拆解（从 allEssays 中随机选一篇）
+  if(d.allEssays && d.allEssays.length > 0){
+    const randomEssay = d.allEssays[Math.floor(Math.random() * d.allEssays.length)];
+    _currentEssay = randomEssay;
+    renderCurrentEssay();
+  } else {
+    document.getElementById("essayContent").innerHTML = '<div class="placeholder" style="padding:40px;text-align:center">暂无范文</div>';
+  }
+
+  // 5. 写作练习（从 allPracticeTopics 中随机选一题）
+  if(d.allPracticeTopics && d.allPracticeTopics.length > 0){
+    const randomTopic = d.allPracticeTopics[Math.floor(Math.random() * d.allPracticeTopics.length)];
+    _currentPracticeTopic = randomTopic;
+    document.getElementById("todTopic").textContent = "题目：" + randomTopic.topic;
+    document.getElementById("todHint").textContent = "💡 " + (randomTopic.hint || "");
+    document.getElementById("practiceText").value = "";
+    document.getElementById("wordCount").textContent = "已写 0 字";
+    document.getElementById("feedbackBox").style.display = "none";
+  } else {
+    document.getElementById("todTopic").textContent = "暂无练习题";
+    document.getElementById("todHint").textContent = "";
   }
 }
 
@@ -877,9 +934,9 @@ async function fetchAndUpdateCache(){
     writeCache('initData', json.data);
     applyInitData(json.data);
   } catch(e){
-    console.warn('后台更新失败，继续使用缓存:', e.message);
-    // 如果没有缓存才走到这里，需要回退到逐模块加载
-    if(!readCache('initData')){
+    console.warn('后台更新失败，继续使用缓存/内置数据:', e.message);
+    // 如果既没有缓存也没有内置数据，才回退到逐模块加载
+    if(!readCache('initData') && typeof BUILTIN_DATA === 'undefined'){
       document.querySelector('#mod-vocab .card .card-title') && (document.querySelector('#mod-vocab .card .card-title').textContent = '📚 好词好句库 — 加载中...');
       initVocab();
       initGuide();
@@ -1495,11 +1552,22 @@ async function loadRandomEssay(){
       return;
     }
   } catch(e) {}
-  // 加载失败：如果有缓存的范文就回退显示
+  // 加载失败：优先缓存 → 再从内置数据随机选
   if(cachedEssay){
     _currentEssay = cachedEssay;
     renderCurrentEssay();
     showToast('📖 网络不畅，显示上次加载的范文');
+  } else if(typeof BUILTIN_DATA !== 'undefined' && BUILTIN_DATA.allEssays && BUILTIN_DATA.allEssays.length > 0){
+    // 从内置数据中随机选一篇（可按分类过滤）
+    let pool = BUILTIN_DATA.allEssays;
+    if(_essayCategory) pool = pool.filter(e => e.type === _essayCategory);
+    if(pool.length > 0){
+      _currentEssay = pool[Math.floor(Math.random() * pool.length)];
+      renderCurrentEssay();
+      showToast('📖 网络不畅，从内置库中加载范文');
+    } else {
+      contEl.innerHTML = '<div class="placeholder" style="padding:40px;text-align:center">📖 该分类暂无范文<button onclick="loadRandomEssay()" style="margin-top:10px;padding:6px 16px;border-radius:8px;border:none;background:var(--primary);color:white;cursor:pointer;font-size:.82rem;display:block;margin-left:auto;margin-right:auto">🔄 换一篇</button></div>';
+    }
   } else {
     contEl.innerHTML = '<div class="placeholder" style="padding:40px;text-align:center">📖 加载失败<button onclick="loadRandomEssay()" style="margin-top:10px;padding:6px 16px;border-radius:8px;border:none;background:var(--primary);color:white;cursor:pointer;font-size:.82rem;display:block;margin-left:auto;margin-right:auto">🔄 重新加载</button></div>';
   }
@@ -1582,12 +1650,25 @@ async function loadNewPracticeTopic(){
       return;
     }
   } catch(e) {}
-  // 加载失败：如果有缓存就回退显示
+  // 加载失败：优先缓存 → 再从内置数据随机选
   if(cachedTopic){
     _currentPracticeTopic = cachedTopic;
     document.getElementById("todTopic").textContent = "题目：" + cachedTopic.topic;
     document.getElementById("todHint").textContent = "💡 " + (cachedTopic.hint || "");
     showToast('📅 网络不畅，显示上次加载的题目');
+  } else if(typeof BUILTIN_DATA !== 'undefined' && BUILTIN_DATA.allPracticeTopics && BUILTIN_DATA.allPracticeTopics.length > 0){
+    let pool = BUILTIN_DATA.allPracticeTopics;
+    if(_practiceCategory) pool = pool.filter(t => t.category === _practiceCategory);
+    if(pool.length > 0){
+      const randomTopic = pool[Math.floor(Math.random() * pool.length)];
+      _currentPracticeTopic = randomTopic;
+      document.getElementById("todTopic").textContent = "题目：" + randomTopic.topic;
+      document.getElementById("todHint").textContent = "💡 " + (randomTopic.hint || "");
+      showToast('📅 网络不畅，从内置题库中加载');
+    } else {
+      document.getElementById("todTopic").textContent = "该分类暂无练习题";
+      document.getElementById("todHint").innerHTML = '<button onclick="loadNewPracticeTopic()" style="padding:6px 16px;border-radius:8px;border:none;background:var(--primary);color:white;cursor:pointer;font-size:.82rem">🔄 换一题</button>';
+    }
   } else {
     document.getElementById("todTopic").textContent = "加载失败";
     document.getElementById("todHint").innerHTML = '<button onclick="loadNewPracticeTopic()" style="padding:6px 16px;border-radius:8px;border:none;background:var(--primary);color:white;cursor:pointer;font-size:.82rem">🔄 重新加载</button>';

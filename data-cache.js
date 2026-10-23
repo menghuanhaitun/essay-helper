@@ -1,11 +1,11 @@
 // 内置数据缓存 - 自动生成，请勿手动修改
-// 导出时间: 2026-10-22T18:00:07.501Z
+// 导出时间: 2026-10-23T18:00:35.300Z
 // 数据来源: Cloudflare D1 (essay-helper-db)
 // 自动更新: Cloudflare Workers Cron Trigger (每天凌晨2点)
 
 var BUILTIN_DATA = {
   "_meta": {
-    "exportedAt": "2026-10-22T18:00:07.501Z",
+    "exportedAt": "2026-10-23T18:00:35.300Z",
     "version": "1.0"
   },
   "vocab": {
